@@ -10,7 +10,7 @@ export default function Register() {
   const user = getUser()
   const [step, setStep] = useState(1)
   const [type, setType] = useState('file')
-  const [form, setForm] = useState({ title: '', description: '', category: 'Web Development', tags: '', externalUrl: '', embedMode: 'iframe' })
+  const [form, setForm] = useState({ title: '', description: '', category: 'Web Development', tags: '', externalUrl: '', embedMode: 'iframe', authorName: user?.name || '', authorDepartment: user?.department || '' })
   const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [sourceFile, setSourceFile] = useState(null)
@@ -102,6 +102,8 @@ export default function Register() {
     const e = {}
     if (!form.title.trim()) e.title = '프로젝트 이름을 입력해주세요'
     if (!form.description.trim()) e.description = '설명을 입력해주세요'
+    if (!form.authorName.trim()) e.authorName = '등록자 이름을 입력해주세요'
+    if (!form.authorDepartment.trim()) e.authorDepartment = '소속팀을 입력해주세요'
     if (type === 'link') {
       if (!form.externalUrl.trim()) { e.externalUrl = '외부 URL을 입력해주세요' }
       else if (isDomainBlocked(form.externalUrl)) { e.externalUrl = '차단된 도메인입니다. 다른 URL을 사용해주세요.' }
@@ -156,8 +158,8 @@ export default function Register() {
         embedMode: form.embedMode,
         fileContent: fileContent || null,
         thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
-        author: user.name,
-        department: user.department || '',
+        author: form.authorName.trim(),
+        department: form.authorDepartment.trim(),
         userId: user.id,
       })
       navigate(`/apps/${newApp.id}`)
@@ -233,6 +235,18 @@ export default function Register() {
                   <label className="block font-label text-sm text-primary mb-2">프로젝트 설명 *</label>
                   <textarea value={form.description} onChange={e => update('description', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="프로젝트의 주요 기능과 사용된 기술을 설명해 주세요." rows={4} />
                   {errors.description && <p className="font-label text-xs text-error mt-1">{errors.description}</p>}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block font-label text-sm text-primary mb-2">등록자 이름 *</label>
+                    <input value={form.authorName} onChange={e => update('authorName', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="홍길동" />
+                    {errors.authorName && <p className="font-label text-xs text-error mt-1">{errors.authorName}</p>}
+                  </div>
+                  <div>
+                    <label className="block font-label text-sm text-primary mb-2">소속팀 *</label>
+                    <input value={form.authorDepartment} onChange={e => update('authorDepartment', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="고객서비스팀" />
+                    {errors.authorDepartment && <p className="font-label text-xs text-error mt-1">{errors.authorDepartment}</p>}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
@@ -467,7 +481,10 @@ export default function Register() {
                   <div className="w-5 h-5 rounded-full bg-secondary-fixed flex items-center justify-center flex-shrink-0">
                     <span className="material-symbols-outlined text-[12px] text-deep-navy">person</span>
                   </div>
-                  <span className="font-label text-xs text-text-secondary truncate">나 · {form.category}</span>
+                  <span className="font-label text-xs text-text-secondary truncate">
+                    {form.authorName || <span className="italic text-outline">이름</span>}
+                    {form.authorDepartment && <span className="text-outline"> · {form.authorDepartment}</span>}
+                  </span>
                 </div>
 
                 {form.tags ? (
