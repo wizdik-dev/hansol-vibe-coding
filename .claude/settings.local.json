@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/ZZZZZZZZZ/**)",
+      "Bash(powershell -command \"Expand-Archive -Path 'stitch_hansol_inspired_web_portal.zip' -DestinationPath 'stitch_extracted' -Force\")"
+    ]
+  }
+}
