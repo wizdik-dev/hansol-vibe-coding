@@ -5,7 +5,7 @@ export default function Footer() {
         <div className="flex flex-col gap-3">
           <span className="font-headline text-xl font-bold text-surface-white">Hansol Vibe Coding</span>
           <p className="font-body text-sm text-surface-container-highest/70 max-w-xs">
-            경영혁신팀이 운영하는 한솔제지 사내 바이브코딩 공유 플랫폼입니다.
+            경영혁신팀이 운영하는<br />한솔제지 사내 바이브코딩 공유 플랫폼입니다.
           </p>
         </div>
         <div className="flex flex-col gap-3">
