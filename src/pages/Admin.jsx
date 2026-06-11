@@ -10,6 +10,12 @@ const COLORS = ['#005d97', '#286292', '#0077bc', '#94c8fe', '#cfe5ff', '#9bcbff'
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
 
+function normalizeUrl(url) {
+  if (!url) return url
+  if (/^https?:\/\//i.test(url)) return url
+  return 'https://' + url
+}
+
 function AppEditModal({ app, onClose, onSave }) {
   const [form, setForm] = useState({
     title: app.title || '',
@@ -28,7 +34,7 @@ function AppEditModal({ app, onClose, onSave }) {
     e.preventDefault()
     if (!form.title.trim() || !form.description.trim()) return
     setSaving(true)
-    await onSave(form)
+    await onSave({ ...form, externalUrl: normalizeUrl(form.externalUrl) })
     setSaving(false)
     onClose()
   }

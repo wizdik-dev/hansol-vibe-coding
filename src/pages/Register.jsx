@@ -7,6 +7,12 @@ import html2canvas from 'html2canvas'
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
 
+function normalizeUrl(url) {
+  if (!url) return url
+  if (/^https?:\/\//i.test(url)) return url
+  return 'https://' + url
+}
+
 export default function Register() {
   const navigate = useNavigate()
   const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments } = useData()
@@ -179,7 +185,7 @@ export default function Register() {
         category: form.category,
         tags: form.tags,
         type,
-        externalUrl: form.externalUrl.trim(),
+        externalUrl: normalizeUrl(form.externalUrl.trim()),
         embedMode: form.embedMode,
         fileContent: fileContent || null,
         thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
