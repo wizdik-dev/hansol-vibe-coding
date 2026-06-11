@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 
-function timeAgo(iso) {
-  const diff = (Date.now() - new Date(iso)) / 1000
+function timeAgo(val) {
+  if (!val) return ''
+  const date = val?.toDate ? val.toDate() : new Date(val)
+  const diff = (Date.now() - date.getTime()) / 1000
+  if (isNaN(diff)) return ''
   if (diff < 60) return '방금 전'
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`
