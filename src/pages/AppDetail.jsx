@@ -87,6 +87,12 @@ export default function AppDetail() {
       window.open(app.externalUrl, '_blank', 'noopener,noreferrer')
     } else if (app.fileUrl) {
       window.open(app.fileUrl, '_blank', 'noopener,noreferrer')
+    } else if (app.fileContent) {
+      // 기존 Firestore 저장 방식 하위 호환
+      const blob = new Blob([app.fileContent], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, '_blank', 'noopener')
+      if (win) setTimeout(() => URL.revokeObjectURL(url), 10000)
     }
   }
 
