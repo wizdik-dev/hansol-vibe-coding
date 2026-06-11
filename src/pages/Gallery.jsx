@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import AppCard from '../components/AppCard'
 import { useData } from '../DataContext'
+
+const PAGE_SIZE = 12
 
 const CATEGORIES = ['전체', '회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const SORTS = [
@@ -17,6 +19,8 @@ export default function Gallery() {
   const [sort, setSort] = useState('newest')
   const [type, setType] = useState('전체')
   const [authModal, setAuthModal] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const loaderRef = useRef(null)
   const navigate = useNavigate()
 
   const q = searchParams.get('q') || ''
@@ -36,6 +40,25 @@ export default function Gallery() {
     if (sort === 'popular') list = [...list].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     return list
   }, [q, category, type, sort])
+
+  // 필터/정렬 변경 시 visibleCount 리셋
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [q, category, type, sort])
+
+  // IntersectionObserver로 무한 스크롤
+  useEffect(() => {
+    const el = loaderRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + PAGE_SIZE)
+      }
+    }, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [apps])
+
+  const visibleApps = apps.slice(0, visibleCount)
+  const hasMore = visibleCount < apps.length
 
   return (
     <>
@@ -130,11 +153,21 @@ export default function Gallery() {
             <p className="font-body text-sm text-outline mt-2">다른 키워드나 필터를 사용해 보세요.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {apps.map(app => (
-              <AppCard key={app.id} app={app} onAuthRequired={() => setAuthModal(true)} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {visibleApps.map(app => (
+                <AppCard key={app.id} app={app} onAuthRequired={() => setAuthModal(true)} />
+              ))}
+            </div>
+            {hasMore && (
+              <div ref={loaderRef} className="flex justify-center py-10">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {!hasMore && apps.length > PAGE_SIZE && (
+              <p className="text-center font-label text-xs text-outline mt-10">전체 {apps.length}개 과제를 모두 불러왔습니다.</p>
+            )}
+          </>
         )}
       </section>
 
