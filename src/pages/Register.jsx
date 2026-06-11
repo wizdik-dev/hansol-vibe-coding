@@ -15,7 +15,7 @@ export default function Register() {
 
   useEffect(() => { getBlockedDomains().then(setBlockedDomains) }, [])
   const [type, setType] = useState('file')
-  const [form, setForm] = useState({ title: '', description: '', category: 'Web Development', tags: [], externalUrl: '', embedMode: 'newtab' })
+  const [form, setForm] = useState({ title: '', description: '', category: '회계/재무', tags: [], externalUrl: '', embedMode: 'newtab' })
   const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [sourceFile, setSourceFile] = useState(null)
