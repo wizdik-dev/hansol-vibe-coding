@@ -52,7 +52,7 @@ export default function Gallery() {
               한솔제지<br />Vibe Coding 포탈
             </h1>
             <p className="font-body text-base text-text-secondary max-w-lg">
-              임직원이 바이브코딩으로 직접 개발한 아이디어를 공유하고, 함께 활용하는 사내 혁신 플랫폼입니다.
+              임직원이 바이브코딩으로 직접 개발한 아이디어를 공유하고,<br />함께 활용하는 사내 혁신 플랫폼입니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link to={user ? '/register' : '/login'}>
