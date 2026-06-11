@@ -1,16 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { addApp, getUser, validateFile, isDomainBlocked } from '../store'
+import { useData } from '../DataContext'
+import { isDomainBlocked, getBlockedDomains } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
+const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
 
 export default function Register() {
   const navigate = useNavigate()
-  const user = getUser()
+  const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments } = useData()
+  const [blockedDomains, setBlockedDomains] = useState([])
   const [step, setStep] = useState(1)
+
+  useEffect(() => { getBlockedDomains().then(setBlockedDomains) }, [])
   const [type, setType] = useState('file')
-  const [form, setForm] = useState({ title: '', description: '', category: 'Web Development', tags: '', externalUrl: '', embedMode: 'iframe', authorName: user?.name || '', authorDepartment: user?.department || '' })
+  const [form, setForm] = useState({ title: '', description: '', category: 'Web Development', tags: [], externalUrl: '', embedMode: 'newtab' })
   const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [sourceFile, setSourceFile] = useState(null)
@@ -19,6 +24,10 @@ export default function Register() {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [capturingThumb, setCapturingThumb] = useState(false)
   const captureIframeRef = useRef(null)
+  const [attachments, setAttachments] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({})
+  const [isDraggingAttachment, setIsDraggingAttachment] = useState(false)
 
   if (!user) { navigate('/login'); return null }
 
@@ -102,11 +111,9 @@ export default function Register() {
     const e = {}
     if (!form.title.trim()) e.title = '프로젝트 이름을 입력해주세요'
     if (!form.description.trim()) e.description = '설명을 입력해주세요'
-    if (!form.authorName.trim()) e.authorName = '등록자 이름을 입력해주세요'
-    if (!form.authorDepartment.trim()) e.authorDepartment = '소속팀을 입력해주세요'
     if (type === 'link') {
       if (!form.externalUrl.trim()) { e.externalUrl = '외부 URL을 입력해주세요' }
-      else if (isDomainBlocked(form.externalUrl)) { e.externalUrl = '차단된 도메인입니다. 다른 URL을 사용해주세요.' }
+      else if (isDomainBlocked(form.externalUrl, blockedDomains)) { e.externalUrl = '차단된 도메인입니다. 다른 URL을 사용해주세요.' }
     }
     setErrors(e)
     return Object.keys(e).length === 0
@@ -121,6 +128,23 @@ export default function Register() {
     const reader = new FileReader()
     reader.onload = ev => setThumbnailPreview(ev.target.result)
     reader.readAsDataURL(file)
+  }
+
+  function handleAttachmentFiles(e) {
+    const files = Array.from(e.target.files || [])
+    const items = files.map(file => {
+      const v = validateAttachment(file)
+      return { file, name: file.name, size: file.size, error: v.error || null }
+    })
+    setAttachments(prev => {
+      const names = new Set(prev.map(a => a.name))
+      return [...prev, ...items.filter(a => !names.has(a.name))]
+    })
+    e.target.value = ''
+  }
+
+  function removeAttachment(name) {
+    setAttachments(prev => prev.filter(a => a.name !== name))
   }
 
   function handleSourceFile(e) {
@@ -145,23 +169,37 @@ export default function Register() {
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (capturingThumb) return // 캡처 완료 대기
+    if (capturingThumb) return
 
-    function doSubmit(fileContent) {
-      const newApp = addApp({
+    async function doSubmit(fileContent) {
+      setUploading(true)
+      const newApp = await addApp({
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category,
-        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: form.tags,
         type,
         externalUrl: form.externalUrl.trim(),
         embedMode: form.embedMode,
         fileContent: fileContent || null,
         thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
-        author: form.authorName.trim(),
-        department: form.authorDepartment.trim(),
+        author: user.name || '',
+        department: user.department || '',
         userId: user.id,
+        attachments: [],
       })
+      const validFiles = attachments.filter(a => !a.error)
+      if (validFiles.length > 0) {
+        const uploaded = []
+        for (const a of validFiles) {
+          const info = await uploadAttachment(newApp.id, a.file, pct =>
+            setUploadProgress(p => ({ ...p, [a.name]: pct }))
+          )
+          uploaded.push(info)
+        }
+        await updateAppAttachments(newApp.id, uploaded)
+      }
+      setUploading(false)
       navigate(`/apps/${newApp.id}`)
     }
 
@@ -238,14 +276,18 @@ export default function Register() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block font-label text-sm text-primary mb-2">등록자 이름 *</label>
-                    <input value={form.authorName} onChange={e => update('authorName', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="홍길동" />
-                    {errors.authorName && <p className="font-label text-xs text-error mt-1">{errors.authorName}</p>}
+                    <label className="block font-label text-sm text-primary mb-2">등록자 이름</label>
+                    <div className="w-full bg-surface-container border-0 border-b-2 border-outline-variant p-3 font-body text-sm text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-outline">person</span>
+                      {user.name || <span className="text-outline italic">미설정 (프로필에서 변경)</span>}
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-label text-sm text-primary mb-2">소속팀 *</label>
-                    <input value={form.authorDepartment} onChange={e => update('authorDepartment', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="고객서비스팀" />
-                    {errors.authorDepartment && <p className="font-label text-xs text-error mt-1">{errors.authorDepartment}</p>}
+                    <label className="block font-label text-sm text-primary mb-2">소속팀</label>
+                    <div className="w-full bg-surface-container border-0 border-b-2 border-outline-variant p-3 font-body text-sm text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-outline">corporate_fare</span>
+                      {user.department || <span className="text-outline italic">미설정 (프로필에서 변경)</span>}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -256,8 +298,22 @@ export default function Register() {
                     </select>
                   </div>
                   <div>
-                    <label className="block font-label text-sm text-primary mb-2">기술 태그 (쉼표로 구분)</label>
-                    <input value={form.tags} onChange={e => update('tags', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="React, Python, Tailwind" />
+                    <label className="block font-label text-sm text-primary mb-2">기술 태그</label>
+                    <div className="flex gap-2 pt-2">
+                      {TAG_OPTIONS.map(tag => {
+                        const selected = form.tags.includes(tag)
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => update('tags', selected ? form.tags.filter(t => t !== tag) : [...form.tags, tag])}
+                            className={`px-4 py-2 rounded-full font-label text-sm font-bold border-2 transition-all ${selected ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant text-text-secondary hover:border-primary hover:text-primary'}`}
+                          >
+                            {tag}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
                 {type === 'link' && (
@@ -265,14 +321,6 @@ export default function Register() {
                     <label className="block font-label text-sm text-primary mb-2">외부 URL *</label>
                     <input value={form.externalUrl} onChange={e => update('externalUrl', e.target.value)} type="url" className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none transition-all" placeholder="https://your-app.vercel.app" />
                     {errors.externalUrl && <p className="font-label text-xs text-error mt-1">{errors.externalUrl}</p>}
-                    <div className="flex gap-4 mt-4">
-                      {[['iframe', 'iframe 임베드'], ['newtab', '새 탭으로 열기']].map(([v, l]) => (
-                        <label key={v} className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="embedMode" value={v} checked={form.embedMode === v} onChange={() => update('embedMode', v)} className="text-primary" />
-                          <span className="font-label text-xs">{l}</span>
-                        </label>
-                      ))}
-                    </div>
                   </div>
                 )}
                 <div className="flex justify-between pt-4">
@@ -412,10 +460,84 @@ export default function Register() {
                   </div>
                 )}
 
+                {/* 첨부파일 */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="font-label text-sm text-primary">
+                      첨부파일 <span className="text-text-secondary font-normal">(선택 · Excel, PDF, PPT, Word, CSV 등 · 최대 20MB)</span>
+                    </label>
+                    <label className="cursor-pointer flex items-center gap-1.5 font-label text-xs text-primary hover:underline">
+                      <span className="material-symbols-outlined text-[16px]">attach_file</span>파일 추가
+                      <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                    </label>
+                  </div>
+                  <div
+                    className={`w-full border-2 border-dashed rounded-xl transition-colors ${isDraggingAttachment ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary'}`}
+                    onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingAttachment(true) }}
+                    onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingAttachment(true) }}
+                    onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingAttachment(false) }}
+                    onDrop={e => {
+                      e.preventDefault(); e.stopPropagation(); setIsDraggingAttachment(false)
+                      const files = Array.from(e.dataTransfer.files || [])
+                      const items = files.map(file => {
+                        const v = validateAttachment(file)
+                        return { file, name: file.name, size: file.size, error: v.error || null }
+                      })
+                      setAttachments(prev => {
+                        const names = new Set(prev.map(a => a.name))
+                        return [...prev, ...items.filter(a => !names.has(a.name))]
+                      })
+                    }}
+                  >
+                    {attachments.length === 0 ? (
+                      <label className="p-6 text-center cursor-pointer block">
+                        <span className={`material-symbols-outlined text-4xl block mb-2 ${isDraggingAttachment ? 'text-primary' : 'text-outline'}`}>
+                          {isDraggingAttachment ? 'download' : 'upload_file'}
+                        </span>
+                        <p className="font-body text-sm text-text-secondary">
+                          {isDraggingAttachment ? '여기에 놓으세요' : '파일을 클릭하거나 드래그하여 첨부하세요'}
+                        </p>
+                        <p className="font-label text-xs text-outline mt-1">Excel, PDF, PPT, Word, CSV, 이미지 (최대 20MB)</p>
+                        <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                      </label>
+                    ) : (
+                      <div className="p-3 space-y-2">
+                        {isDraggingAttachment && (
+                          <div className="text-center py-2 font-label text-sm text-primary font-bold">여기에 놓으세요</div>
+                        )}
+                        {attachments.map(a => (
+                          <div key={a.name} className={`flex items-center gap-3 p-3 rounded-lg border ${a.error ? 'border-error/40 bg-error/5' : 'border-outline-variant bg-surface-container-low'}`}>
+                            <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0">
+                              {a.name.match(/\.(xlsx?|csv)$/i) ? 'table_chart' : a.name.match(/\.pdf$/i) ? 'picture_as_pdf' : a.name.match(/\.pptx?$/i) ? 'slideshow' : 'description'}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-label text-xs font-bold text-deep-navy truncate">{a.name}</p>
+                              {a.error
+                                ? <p className="font-label text-xs text-error">{a.error}</p>
+                                : uploadProgress[a.name] != null
+                                  ? <div className="mt-1 h-1 bg-surface-container rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full transition-all" style={{ width: `${uploadProgress[a.name]}%` }} /></div>
+                                  : <p className="font-label text-xs text-text-secondary">{(a.size / 1024 / 1024).toFixed(2)} MB</p>
+                              }
+                            </div>
+                            <button type="button" onClick={() => removeAttachment(a.name)} className="p-1 text-text-secondary hover:text-error transition-colors flex-shrink-0">
+                              <span className="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                          </div>
+                        ))}
+                        <label className="flex items-center gap-2 font-label text-xs text-primary cursor-pointer hover:underline px-1">
+                          <span className="material-symbols-outlined text-[14px]">add</span>파일 추가
+                          <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex justify-between pt-4">
-                  <button type="button" onClick={() => setStep(2)} className="px-8 py-3 border border-primary text-primary font-label text-sm font-bold rounded-lg hover:bg-surface-container-low transition-all">이전</button>
-                  <button type="submit" className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all shadow-lg hover:scale-105">
-                    최종 등록하기
+                  <button type="button" onClick={() => setStep(2)} disabled={uploading} className="px-8 py-3 border border-primary text-primary font-label text-sm font-bold rounded-lg hover:bg-surface-container-low transition-all disabled:opacity-50">이전</button>
+                  <button type="submit" disabled={uploading} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all shadow-lg hover:scale-105 disabled:opacity-60 flex items-center gap-2">
+                    {uploading && <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />}
+                    {uploading ? '업로드 중...' : '최종 등록하기'}
                   </button>
                 </div>
               </form>
@@ -482,14 +604,14 @@ export default function Register() {
                     <span className="material-symbols-outlined text-[12px] text-deep-navy">person</span>
                   </div>
                   <span className="font-label text-xs text-text-secondary truncate">
-                    {form.authorName || <span className="italic text-outline">이름</span>}
-                    {form.authorDepartment && <span className="text-outline"> · {form.authorDepartment}</span>}
+                    {user.name || <span className="italic text-outline">이름</span>}
+                    {user.department && <span className="text-outline"> · {user.department}</span>}
                   </span>
                 </div>
 
-                {form.tags ? (
+                {form.tags.length > 0 ? (
                   <div className="flex gap-1.5 flex-wrap">
-                    {form.tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 3).map(t => (
+                    {form.tags.map(t => (
                       <span key={t} className="bg-surface-container px-2 py-0.5 rounded font-label text-xs text-on-surface-variant">{t}</span>
                     ))}
                   </div>

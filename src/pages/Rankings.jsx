@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { getRankings, getLikeCount } from '../store'
+import { useData } from '../DataContext'
 
 const MEDAL = ['🥇', '🥈', '🥉', '4', '5']
 
@@ -36,8 +36,9 @@ function RankCard({ app, rank, showScore = false }) {
 }
 
 export default function Rankings() {
+  const { getRankings } = useData()
   const [tab, setTab] = useState('weekly')
-  const { weekly, allTime, trending, byDept } = useMemo(() => getRankings(), [])
+  const { weekly, allTime, trending, byDept } = useMemo(() => getRankings(), [getRankings])
 
   const tabs = [
     { id: 'weekly', label: '주간 TOP 5', icon: 'local_fire_department' },

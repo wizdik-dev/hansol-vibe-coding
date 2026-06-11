@@ -70,10 +70,10 @@ export default {
         'container-max': '1280px',
       },
       fontFamily: {
-        'display': ['Hanken Grotesk', 'sans-serif'],
-        'headline': ['Hanken Grotesk', 'sans-serif'],
-        'body': ['Open Sans', 'sans-serif'],
-        'label': ['JetBrains Mono', 'monospace'],
+        'display': ['Pretendard', 'Nanum Gothic', 'sans-serif'],
+        'headline': ['Pretendard', 'Nanum Gothic', 'sans-serif'],
+        'body': ['Pretendard', 'Nanum Gothic', 'sans-serif'],
+        'label': ['Pretendard', 'Nanum Gothic', 'sans-serif'],
       },
       maxWidth: {
         'container': '1280px',

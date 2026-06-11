@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import {
-  getApp, incrementView, getLikeCount, getUserLikes, toggleLike,
-  getUserBookmarks, toggleBookmark, getComments, addComment, deleteComment, getUser, getApps, addReport
-} from '../store'
+import { useData } from '../DataContext'
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000
@@ -16,65 +13,73 @@ function timeAgo(iso) {
 export default function AppDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user, apps, userLikes, userBookmarks, toggleLike, toggleBookmark,
+    getComments, addComment, deleteComment, addReport, incrementView } = useData()
   const [app, setApp] = useState(null)
-  const [liked, setLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(0)
-  const [bookmarked, setBookmarked] = useState(false)
   const [comments, setComments] = useState([])
   const [commentText, setCommentText] = useState('')
   const [replyTo, setReplyTo] = useState(null)
   const [replyText, setReplyText] = useState('')
   const [reportModal, setReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
-  const user = getUser()
+
+  const liked = userLikes.has(id)
+  const likeCount = app?.likeCount ?? 0
+  const bookmarked = userBookmarks.has(id)
 
   useEffect(() => {
-    const found = getApp(id)
-    if (!found) { navigate('/'); return }
-    incrementView(id)
-    setApp(found)
-    setLiked(getUserLikes().includes(id))
-    setLikeCount(getLikeCount(id))
-    setBookmarked(!!getUserBookmarks()[id])
-    setComments(getComments(id))
+    if (apps.length > 0) {
+      const found = apps.find(a => a.id === id)
+      if (!found) { navigate('/'); return }
+      setApp(found)
+    }
+  }, [id, apps])
+
+  useEffect(() => {
+    let cancelled = false
+    getComments(id).then(setComments)
+    // 짧은 지연 후 호출 — StrictMode 이중 실행 시 두 번째 호출 전 cleanup으로 취소
+    const timer = setTimeout(() => {
+      if (!cancelled) incrementView(id)
+    }, 300)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [id])
 
   if (!app) return null
 
-  const relatedApps = getApps().filter(a => a.id !== id && a.tags?.some(t => app.tags?.includes(t))).slice(0, 3)
+  const relatedApps = apps.filter(a => a.id !== id && a.status !== 'rejected' && a.tags?.some(t => app.tags?.includes(t))).slice(0, 3)
 
-  function handleLike() {
+  async function handleLike() {
     if (!user) { navigate('/login'); return }
-    setLiked(toggleLike(id))
-    setLikeCount(getLikeCount(id))
+    await toggleLike(id)
   }
 
-  function handleBookmark() {
+  async function handleBookmark() {
     if (!user) { navigate('/login'); return }
-    setBookmarked(toggleBookmark(id))
+    await toggleBookmark(id)
   }
 
-  function handleComment(e) {
+  async function handleComment(e) {
     e.preventDefault()
     if (!user) { navigate('/login'); return }
     if (!commentText.trim()) return
-    const c = addComment(id, commentText)
-    if (c) { setComments(getComments(id)); setCommentText('') }
+    const c = await addComment(id, commentText)
+    if (c) { setComments(await getComments(id)); setCommentText('') }
   }
 
-  function handleReply(e) {
+  async function handleReply(e) {
     e.preventDefault()
     if (!user) { navigate('/login'); return }
     if (!replyText.trim()) return
-    addComment(id, replyText, replyTo)
-    setComments(getComments(id))
+    await addComment(id, replyText, replyTo)
+    setComments(await getComments(id))
     setReplyTo(null)
     setReplyText('')
   }
 
-  function handleDelete(commentId) {
-    deleteComment(id, commentId)
-    setComments(getComments(id))
+  async function handleDelete(commentId) {
+    await deleteComment(id, commentId)
+    setComments(await getComments(id))
   }
 
   function handleRun() {
@@ -84,15 +89,14 @@ export default function AppDetail() {
       const blob = new Blob([app.fileContent], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       const win = window.open(url, '_blank', 'noopener')
-      // blob URL은 새 탭이 열린 후 해제해도 됨
       if (win) setTimeout(() => URL.revokeObjectURL(url), 10000)
     }
   }
 
-  function handleReport(e) {
+  async function handleReport(e) {
     e.preventDefault()
     if (!reportReason.trim()) return
-    addReport(id, 'app', reportReason)
+    await addReport(id, 'app', reportReason)
     setReportModal(false)
     setReportReason('')
     alert('신고가 접수되었습니다. 관리자가 검토합니다.')
@@ -313,21 +317,14 @@ export default function AppDetail() {
                   <span className="font-body text-sm text-deep-navy">{app.author}</span>
                 </div>
               </div>
-              <div className="mt-6 pt-6 border-t border-outline-variant space-y-3">
+              <div className="mt-6 pt-6 border-t border-outline-variant">
                 <button
                   onClick={handleRun}
                   className="w-full bg-primary text-on-primary py-3.5 rounded-lg font-headline text-base hover:bg-primary-container transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
                 >
                   <span className="material-symbols-outlined filled">rocket_launch</span>
-                  지금 앱 실행
+                  앱 실행하기
                 </button>
-                {app.type === 'link' && (
-                  <a href={app.externalUrl} target="_blank" rel="noopener noreferrer">
-                    <button className="w-full bg-surface-white text-primary border border-primary py-3.5 rounded-lg font-headline text-base hover:bg-surface-container-low transition-all active:scale-95">
-                      외부 링크 열기
-                    </button>
-                  </a>
-                )}
               </div>
               <div className="mt-5">
                 <div className="p-3 bg-surface-container-low rounded-lg flex items-center justify-between">
@@ -339,6 +336,32 @@ export default function AppDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Attachments */}
+            {app.attachments?.length > 0 && (
+              <div className="bg-surface-white p-6 rounded-xl border border-outline-variant">
+                <h4 className="font-headline text-base font-bold text-deep-navy mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[20px]">attach_file</span>
+                  첨부파일
+                </h4>
+                <div className="space-y-2">
+                  {app.attachments.map((att, i) => (
+                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-outline-variant hover:border-primary hover:bg-primary/5 transition-all group"
+                    >
+                      <span className="material-symbols-outlined text-primary text-[22px] flex-shrink-0">
+                        {att.name?.match(/\.(xlsx?|csv)$/i) ? 'table_chart' : att.name?.match(/\.pdf$/i) ? 'picture_as_pdf' : att.name?.match(/\.pptx?$/i) ? 'slideshow' : 'description'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-label text-xs font-bold text-deep-navy group-hover:text-primary transition-colors truncate">{att.name}</p>
+                        <p className="font-label text-xs text-text-secondary">{att.size ? `${(att.size / 1024 / 1024).toFixed(2)} MB` : ''}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-text-secondary group-hover:text-primary text-[18px] flex-shrink-0">download</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Related */}
             {relatedApps.length > 0 && (

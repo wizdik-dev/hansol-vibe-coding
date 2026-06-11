@@ -10,6 +10,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'charts': ['recharts'],
           'html2canvas': ['html2canvas'],
+            'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
         },
       },
     },

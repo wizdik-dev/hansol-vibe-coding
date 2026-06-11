@@ -1,26 +1,28 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getUser, updateUser, changePassword, getApps, getUserLikes, getLikeCount } from '../store'
+import { useData } from '../DataContext'
 
 export default function Profile() {
   const navigate = useNavigate()
-  const [user, setUser] = useState(getUser())
+  const { user, apps: allApps, userLikes, updateUser, changePassword } = useData()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: user?.name || '', department: user?.department || '', position: user?.position || '', bio: user?.bio || '' })
   const [saved, setSaved] = useState(false)
 
-  // 비밀번호 변경
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
-  const [pwMsg, setPwMsg] = useState(null) // { type: 'ok'|'error', text }
+  const [pwMsg, setPwMsg] = useState(null)
   const [showPw, setShowPw] = useState(false)
 
-  function handlePasswordChange(e) {
+  const myApps = useMemo(() => allApps.filter(a => a.userId === user?.id), [allApps, user])
+  const likedApps = useMemo(() => allApps.filter(a => userLikes.has(a.id)), [allApps, userLikes])
+
+  async function handlePasswordChange(e) {
     e.preventDefault()
     if (pwForm.next !== pwForm.confirm) {
       setPwMsg({ type: 'error', text: '새 비밀번호 확인이 일치하지 않습니다.' })
       return
     }
-    const result = changePassword(pwForm.current, pwForm.next)
+    const result = await changePassword(pwForm.current, pwForm.next)
     if (result.error) {
       setPwMsg({ type: 'error', text: result.error })
     } else {
@@ -32,13 +34,9 @@ export default function Profile() {
 
   if (!user) { navigate('/login'); return null }
 
-  const myApps = getApps().filter(a => a.userId === user.id)
-  const likedApps = getApps().filter(a => getUserLikes().includes(a.id))
-
-  function handleSave(e) {
+  async function handleSave(e) {
     e.preventDefault()
-    const updated = updateUser(form)
-    setUser(updated)
+    await updateUser(form)
     setEditing(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)

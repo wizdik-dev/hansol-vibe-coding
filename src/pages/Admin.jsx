@@ -1,10 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import {
-  getUser, getApps, updateAppStatus, deleteAppById,
-  getReports, resolveReport, getNotices, addNotice, deleteNotice,
-  getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
-} from '../store'
+import { useData } from '../DataContext'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -28,57 +24,76 @@ function StatCard({ icon, label, value, color = 'text-primary' }) {
 
 export default function Admin() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const user = getUser()
-
-  useEffect(() => {
-    if (!user || user.role !== 'admin') navigate('/')
-  }, [])
-
-  if (!user || user.role !== 'admin') return null
+  const { user, isAdmin, apps: allApps, deleteApp,
+    getReports, resolveReport, getNotices, addNotice, deleteNotice,
+    getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
+    getUsers, adminDeleteUser, adminSendPasswordReset } = useData()
 
   const [section, setSection] = useState('stats')
-  const [apps, setApps] = useState(() => getApps({ includeAll: true }))
-  const [reports, setReports] = useState(() => getReports())
-  const [notices, setNotices] = useState(() => getNotices())
-  const [stats, setStats] = useState(() => getAdminStats())
-  const [blocked, setBlocked] = useState(() => getBlockedDomains())
+  const [reports, setReports] = useState([])
+  const [notices, setNotices] = useState([])
+  const [stats, setStats] = useState(null)
+  const [blocked, setBlocked] = useState([])
+  const [users, setUsers] = useState([])
   const [noticeForm, setNoticeForm] = useState({ title: '', content: '' })
   const [newDomain, setNewDomain] = useState('')
   const [appFilter, setAppFilter] = useState('all')
+  const [pwResetMsg, setPwResetMsg] = useState('')
 
-  function refresh() {
-    setApps(getApps({ includeAll: true }))
-    setReports(getReports())
-    setNotices(getNotices())
-    setStats(getAdminStats())
-    setBlocked(getBlockedDomains())
+  useEffect(() => {
+    if (!isAdmin) navigate('/')
+  }, [isAdmin])
+
+  const refresh = useCallback(async () => {
+    const [r, n, s, b, u] = await Promise.all([
+      getReports(), getNotices(), getAdminStats(), getBlockedDomains(), getUsers(),
+    ])
+    setReports(r); setNotices(n); setStats(s); setBlocked(b); setUsers(u)
+  }, [getReports, getNotices, getAdminStats, getBlockedDomains, getUsers])
+
+  useEffect(() => { if (isAdmin) refresh() }, [isAdmin])
+
+  if (!isAdmin || !stats) return null
+
+  const apps = allApps
+
+  async function handleDelete(id) {
+    if (window.confirm('정말 삭제하시겠습니까?')) { await deleteApp(id) }
   }
-
-  function handleStatus(id, status) { updateAppStatus(id, status); refresh() }
-  function handleDelete(id) { if (window.confirm('정말 삭제하시겠습니까?')) { deleteAppById(id); refresh() } }
-  function handleResolve(id) { resolveReport(id); refresh() }
-  function handleNotice(e) {
+  async function handleResolve(id) { await resolveReport(id); refresh() }
+  async function handleNotice(e) {
     e.preventDefault()
     if (!noticeForm.title || !noticeForm.content) return
-    addNotice(noticeForm.title, noticeForm.content)
+    await addNotice(noticeForm.title, noticeForm.content)
     setNoticeForm({ title: '', content: '' })
     refresh()
   }
-  function handleDeleteNotice(id) { deleteNotice(id); refresh() }
-  function handleBlockDomain() {
+  async function handleDeleteNotice(id) { await deleteNotice(id); refresh() }
+  async function handleBlockDomain() {
     if (!newDomain.trim()) return
-    addBlockedDomain(newDomain.trim())
+    await addBlockedDomain(newDomain.trim())
     setNewDomain('')
     refresh()
+  }
+  async function handleRemoveDomain(d) { await removeBlockedDomain(d); refresh() }
+  async function handleDeleteUser(uid) {
+    if (!window.confirm('사용자를 삭제하시겠습니까? 복구할 수 없습니다.')) return
+    await adminDeleteUser(uid)
+    refresh()
+  }
+  async function handlePasswordReset(email) {
+    await adminSendPasswordReset(email)
+    setPwResetMsg(`${email} 로 비밀번호 재설정 이메일을 발송했습니다.`)
+    setTimeout(() => setPwResetMsg(''), 4000)
   }
 
   const filteredApps = apps.filter(a => appFilter === 'all' ? true : a.status === appFilter)
 
   const navItems = [
     { id: 'stats', icon: 'bar_chart', label: '통계 대시보드' },
-    { id: 'apps', icon: 'apps', label: `앱 관리 (${stats.pendingApps}개 대기)` },
-    { id: 'reports', icon: 'flag', label: `신고 관리 (${stats.pendingReports}개)` },
+    { id: 'apps', icon: 'apps', label: '앱 관리' },
+    { id: 'users', icon: 'group', label: `유저 관리 (${users.length}명)` },
+    { id: 'reports', icon: 'flag', label: `신고 관리 (${stats?.pendingReports ?? 0}개)` },
     { id: 'notices', icon: 'campaign', label: '공지사항' },
     { id: 'security', icon: 'security', label: '보안 설정' },
   ]
@@ -122,13 +137,11 @@ export default function Admin() {
             {/* ─── 통계 대시보드 ─── */}
             {section === 'stats' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <StatCard icon="apps" label="전체 앱" value={stats.totalApps} />
-                  <StatCard icon="check_circle" label="승인된 앱" value={stats.approvedApps} color="text-primary" />
-                  <StatCard icon="pending" label="승인 대기" value={stats.pendingApps} color="text-error" />
+                  <StatCard icon="group" label="가입 유저" value={users.length} />
                   <StatCard icon="visibility" label="총 조회수" value={stats.totalViews} />
                   <StatCard icon="favorite" label="총 좋아요" value={stats.totalLikes} color="text-error" />
-                  <StatCard icon="flag" label="미처리 신고" value={stats.pendingReports} color="text-error" />
                 </div>
 
                 {/* Monthly trend */}
@@ -176,25 +189,20 @@ export default function Admin() {
             {/* ─── 앱 관리 ─── */}
             {section === 'apps' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {[['all', '전체'], ['pending', '대기중'], ['approved', '승인됨'], ['rejected', '반려됨']].map(([v, l]) => (
-                    <button key={v} onClick={() => setAppFilter(v)} className={`px-4 py-1.5 rounded-full font-label text-xs font-bold transition-colors ${appFilter === v ? 'bg-primary text-on-primary' : 'bg-surface-container text-text-secondary hover:bg-surface-container-high'}`}>{l}</button>
-                  ))}
-                  <span className="font-label text-xs text-text-secondary ml-auto">{filteredApps.length}개</span>
-                </div>
+                <span className="font-label text-xs text-text-secondary">{apps.length}개 등록됨</span>
                 <div className="bg-surface-white border border-outline-variant rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-surface-container-low border-b border-outline-variant">
                       <tr>
                         <th className="text-left px-4 py-3 font-label text-xs text-text-secondary">앱명</th>
                         <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">카테고리</th>
-                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">작성자</th>
-                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary">상태</th>
-                        <th className="text-right px-4 py-3 font-label text-xs text-text-secondary">액션</th>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">등록자</th>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">조회/좋아요</th>
+                        <th className="text-right px-4 py-3 font-label text-xs text-text-secondary">삭제</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/50">
-                      {filteredApps.map(app => (
+                      {apps.map(app => (
                         <tr key={app.id} className="hover:bg-surface-container-low/50 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
@@ -205,24 +213,87 @@ export default function Admin() {
                             </div>
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{app.category}</span></td>
-                          <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{app.author}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{app.author} · {app.department}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className="font-label text-xs text-text-secondary">{(app.viewCount||0).toLocaleString()} / {(app.likeCount||0).toLocaleString()}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <button onClick={() => handleDelete(app.id)} className="p-1.5 text-error hover:bg-error/10 rounded transition-colors" title="삭제">
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {apps.length === 0 && <p className="text-center py-10 font-body text-sm text-text-secondary">앱이 없습니다.</p>}
+                </div>
+              </div>
+            )}
+
+            {/* ─── 유저 관리 ─── */}
+            {section === 'users' && (
+              <div className="space-y-4">
+                {pwResetMsg && (
+                  <div className="bg-primary/10 text-primary font-label text-sm p-3 rounded-lg flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">mark_email_read</span>{pwResetMsg}
+                  </div>
+                )}
+                <span className="font-label text-xs text-text-secondary">{users.length}명 가입</span>
+                <div className="bg-surface-white border border-outline-variant rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface-container-low border-b border-outline-variant">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary">이름</th>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">이메일</th>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">소속팀</th>
+                        <th className="text-left px-4 py-3 font-label text-xs text-text-secondary hidden md:table-cell">역할</th>
+                        <th className="text-right px-4 py-3 font-label text-xs text-text-secondary">액션</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/50">
+                      {users.map(u => (
+                        <tr key={u.id} className="hover:bg-surface-container-low/50 transition-colors">
                           <td className="px-4 py-3">
-                            <span className={`font-label text-xs px-2 py-0.5 rounded-full ${app.status === 'approved' ? 'bg-primary/10 text-primary' : app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-error/10 text-error'}`}>
-                              {app.status === 'approved' ? '승인' : app.status === 'pending' ? '대기' : '반려'}
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs flex-shrink-0">
+                                {u.name?.charAt(0)?.toUpperCase() || '?'}
+                              </div>
+                              <span className="font-label text-xs text-deep-navy">{u.name || '(미설정)'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{u.email}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{u.department || '—'}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className={`font-label text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
+                              {u.role === 'admin' ? '관리자' : '일반'}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              {app.status !== 'approved' && <button onClick={() => handleStatus(app.id, 'approved')} className="p-1.5 text-primary hover:bg-primary/10 rounded transition-colors" title="승인"><span className="material-symbols-outlined text-[16px]">check_circle</span></button>}
-                              {app.status !== 'rejected' && <button onClick={() => handleStatus(app.id, 'rejected')} className="p-1.5 text-orange-500 hover:bg-orange-50 rounded transition-colors" title="반려"><span className="material-symbols-outlined text-[16px]">block</span></button>}
-                              <button onClick={() => handleDelete(app.id)} className="p-1.5 text-error hover:bg-error/10 rounded transition-colors" title="삭제"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                              <button
+                                onClick={() => handlePasswordReset(u.email)}
+                                className="p-1.5 text-primary hover:bg-primary/10 rounded transition-colors"
+                                title="비밀번호 재설정 이메일 발송"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">lock_reset</span>
+                              </button>
+                              {u.role !== 'admin' && (
+                                <button
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  className="p-1.5 text-error hover:bg-error/10 rounded transition-colors"
+                                  title="유저 삭제"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {filteredApps.length === 0 && <p className="text-center py-10 font-body text-sm text-text-secondary">앱이 없습니다.</p>}
+                  {users.length === 0 && <p className="text-center py-10 font-body text-sm text-text-secondary">가입된 유저가 없습니다.</p>}
                 </div>
               </div>
             )}
@@ -243,7 +314,7 @@ export default function Admin() {
                         <p className="font-body text-sm text-text-secondary mt-1">사유: {r.reason}</p>
                       </div>
                       {r.status !== 'resolved' && (
-                        <button onClick={() => { resolveReport(r.id); refresh() }} className="flex-shrink-0 font-label text-xs bg-primary text-on-primary px-4 py-2 rounded-lg hover:bg-primary-container transition-colors">처리 완료</button>
+                        <button onClick={() => handleResolve(r.id)} className="flex-shrink-0 font-label text-xs bg-primary text-on-primary px-4 py-2 rounded-lg hover:bg-primary-container transition-colors">처리 완료</button>
                       )}
                     </div>
                   </div>
@@ -313,7 +384,7 @@ export default function Admin() {
                       <span key={d} className="flex items-center gap-2 bg-error/10 text-error font-label text-xs px-3 py-1.5 rounded-full">
                         <span className="material-symbols-outlined text-[12px]">block</span>
                         {d}
-                        <button onClick={() => { removeBlockedDomain(d); refresh() }} className="hover:opacity-70 transition-opacity">
+                        <button onClick={() => handleRemoveDomain(d)} className="hover:opacity-70 transition-opacity">
                           <span className="material-symbols-outlined text-[14px]">close</span>
                         </button>
                       </span>

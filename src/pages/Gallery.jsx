@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import AppCard from '../components/AppCard'
-import { getApps, getUser } from '../store'
+import { useData } from '../DataContext'
 
 const CATEGORIES = ['전체', '회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const SORTS = [
@@ -11,6 +11,7 @@ const SORTS = [
 ]
 
 export default function Gallery() {
+  const { user, apps: allApps } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('newest')
@@ -21,7 +22,7 @@ export default function Gallery() {
   const q = searchParams.get('q') || ''
 
   const apps = useMemo(() => {
-    let list = getApps()
+    let list = allApps.filter(a => a.status !== 'rejected')
     if (q) list = list.filter(a =>
       a.title.toLowerCase().includes(q.toLowerCase()) ||
       a.description?.toLowerCase().includes(q.toLowerCase()) ||
@@ -45,16 +46,16 @@ export default function Gallery() {
           <div className="max-w-2xl space-y-4">
             <div className="inline-flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full text-primary font-label text-xs">
               <span className="material-symbols-outlined text-[16px]">terminal</span>
-              <span>INNOVATION IN CODE</span>
+              <span>HANSOL PAPER · VIBE CODING</span>
             </div>
             <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-deep-navy tracking-tight leading-tight">
-              바이브코딩<br />쇼케이스 포털
+              한솔제지<br />Vibe Coding 포탈
             </h1>
             <p className="font-body text-base text-text-secondary max-w-lg">
-              학술적 혁신과 산업 표준의 신뢰를 잇는 학생 개발자들을 위한 전문적인 코드 아카이브입니다.
+              임직원이 바이브코딩으로 직접 개발한 아이디어를 공유하고, 함께 활용하는 사내 혁신 플랫폼입니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Link to={getUser() ? '/register' : '/login'}>
+              <Link to={user ? '/register' : '/login'}>
                 <button className="bg-primary text-on-primary px-8 py-3 font-label text-sm font-bold rounded-lg hover:bg-primary-container transition-all hover:scale-105 shadow-md">
                   지금 등록하기
                 </button>
@@ -143,7 +144,7 @@ export default function Gallery() {
           <div className="max-w-3xl flex flex-col items-start gap-4">
             <h2 className="font-headline text-4xl md:text-5xl font-extrabold">당신의 코드로 세상을 <br />놀라게 하세요.</h2>
             <p className="font-body text-base opacity-80 max-w-xl">전 세계 개발자와 기업들이 당신의 결과물을 기다리고 있습니다.</p>
-            <Link to={getUser() ? '/register' : '/login'}>
+            <Link to={user ? '/register' : '/login'}>
               <button className="mt-2 bg-primary-fixed text-on-primary-fixed px-10 py-4 font-label text-sm font-bold rounded-lg hover:bg-primary-fixed-dim transition-all hover:scale-105 shadow-xl">
                 앱 등록 신청하기
               </button>

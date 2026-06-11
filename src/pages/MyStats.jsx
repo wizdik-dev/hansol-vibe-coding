@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getUser, getMyStats } from '../store'
+import { useData } from '../DataContext'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid,
@@ -21,14 +21,10 @@ function StatCard({ icon, label, value, sub, color = 'text-primary' }) {
 
 export default function MyStats() {
   const navigate = useNavigate()
-  const user = getUser()
-  const [stats, setStats] = useState(null)
+  const { user, getMyStats } = useData()
+  const stats = useMemo(() => getMyStats(), [getMyStats])
 
-  useEffect(() => {
-    if (!user) { navigate('/login'); return }
-    setStats(getMyStats())
-  }, [])
-
+  if (!user) { navigate('/login'); return null }
   if (!stats) return null
 
   return (

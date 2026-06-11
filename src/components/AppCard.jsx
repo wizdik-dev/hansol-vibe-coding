@@ -1,24 +1,23 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getLikeCount, getUserLikes, toggleLike, getUserBookmarks, toggleBookmark, getUser } from '../store'
+import { useData } from '../DataContext'
 
 export default function AppCard({ app, onAuthRequired }) {
-  const [liked, setLiked] = useState(() => getUserLikes().includes(app.id))
-  const [likeCount, setLikeCount] = useState(() => getLikeCount(app.id))
-  const [bookmarked, setBookmarked] = useState(() => !!getUserBookmarks()[app.id])
+  const { user, userLikes, userBookmarks, toggleLike, toggleBookmark } = useData()
 
-  function handleLike(e) {
+  const liked = userLikes.has(app.id)
+  const likeCount = app.likeCount ?? 0
+  const bookmarked = userBookmarks.has(app.id)
+
+  async function handleLike(e) {
     e.preventDefault()
-    if (!getUser()) { onAuthRequired?.(); return }
-    const nowLiked = toggleLike(app.id)
-    setLiked(nowLiked)
-    setLikeCount(getLikeCount(app.id))
+    if (!user) { onAuthRequired?.(); return }
+    await toggleLike(app.id)
   }
 
-  function handleBookmark(e) {
+  async function handleBookmark(e) {
     e.preventDefault()
-    if (!getUser()) { onAuthRequired?.(); return }
-    setBookmarked(toggleBookmark(app.id))
+    if (!user) { onAuthRequired?.(); return }
+    await toggleBookmark(app.id)
   }
 
   return (
