@@ -127,7 +127,7 @@ function EditModal({ app, onClose, onSave }) {
               <label className="font-label text-sm text-primary">첨부파일</label>
               <label className="cursor-pointer flex items-center gap-1 font-label text-xs text-primary hover:underline">
                 <span className="material-symbols-outlined text-[14px]">add</span>파일 추가
-                <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleNewFiles} className="sr-only" />
+                <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.zip,.png,.jpg,.jpeg" onChange={handleNewFiles} className="sr-only" />
               </label>
             </div>
             <div

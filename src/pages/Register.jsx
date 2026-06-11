@@ -468,7 +468,7 @@ export default function Register() {
                     </label>
                     <label className="cursor-pointer flex items-center gap-1.5 font-label text-xs text-primary hover:underline">
                       <span className="material-symbols-outlined text-[16px]">attach_file</span>파일 추가
-                      <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                      <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
                     </label>
                   </div>
                   <div
@@ -498,7 +498,7 @@ export default function Register() {
                           {isDraggingAttachment ? '여기에 놓으세요' : '파일을 클릭하거나 드래그하여 첨부하세요'}
                         </p>
                         <p className="font-label text-xs text-outline mt-1">Excel, PDF, PPT, Word, CSV, 이미지 (최대 20MB)</p>
-                        <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                        <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
                       </label>
                     ) : (
                       <div className="p-3 space-y-2">
@@ -526,7 +526,7 @@ export default function Register() {
                         ))}
                         <label className="flex items-center gap-2 font-label text-xs text-primary cursor-pointer hover:underline px-1">
                           <span className="material-symbols-outlined text-[14px]">add</span>파일 추가
-                          <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
+                          <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
                         </label>
                       </div>
                     )}
