@@ -416,3 +416,19 @@ export async function updateAppAttachments(appId, attachments) {
   await updateDoc(doc(db, 'apps', appId), { attachments })
 }
 
+export function uploadHtmlFile(appId, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._\-가-힣]/g, '_')}`
+    const storageRef = ref(storage, `htmlfiles/${appId}/${safeName}`)
+    const task = uploadBytesResumable(storageRef, file, { contentType: 'text/html' })
+    task.on('state_changed',
+      snap => onProgress && onProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
+      reject,
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref)
+        resolve({ url, path: task.snapshot.ref.fullPath })
+      }
+    )
+  })
+}
+

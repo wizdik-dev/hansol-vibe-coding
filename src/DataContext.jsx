@@ -14,6 +14,7 @@ import {
   getUsers, adminDeleteUser, adminSendPasswordReset,
   computeRankings, computeMyStats, computeAdminStats,
   validateFile, validateAttachment, uploadAttachment, deleteAttachment, updateAppAttachments,
+  uploadHtmlFile,
 } from './store'
 
 const DataContext = createContext(null)
@@ -216,6 +217,7 @@ export function DataProvider({ children }) {
     getAdminStats,
 
     validateFile, validateAttachment, uploadAttachment, deleteAttachment, updateAppAttachments,
+    uploadHtmlFile,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

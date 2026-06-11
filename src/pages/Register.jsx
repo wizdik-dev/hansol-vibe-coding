@@ -15,7 +15,7 @@ function normalizeUrl(url) {
 
 export default function Register() {
   const navigate = useNavigate()
-  const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments } = useData()
+  const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments, uploadHtmlFile } = useData()
   const [blockedDomains, setBlockedDomains] = useState([])
   const [step, setStep] = useState(1)
 
@@ -177,8 +177,15 @@ export default function Register() {
     e.preventDefault()
     if (capturingThumb) return
 
-    async function doSubmit(fileContent) {
+    async function doSubmit() {
       setUploading(true)
+      // HTML 파일은 Storage에 업로드 후 URL 저장
+      let fileUrl = null
+      if (type === 'file' && sourceFile) {
+        const tempId = `tmp_${Date.now()}`
+        const result = await uploadHtmlFile(tempId, sourceFile)
+        fileUrl = result.url
+      }
       const newApp = await addApp({
         title: form.title.trim(),
         description: form.description.trim(),
@@ -187,7 +194,7 @@ export default function Register() {
         type,
         externalUrl: normalizeUrl(form.externalUrl.trim()),
         embedMode: form.embedMode,
-        fileContent: fileContent || null,
+        fileUrl: fileUrl || null,
         thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
         author: user.name || '',
         department: user.department || '',
@@ -209,13 +216,7 @@ export default function Register() {
       navigate(`/apps/${newApp.id}`)
     }
 
-    if (type === 'file' && sourceFile) {
-      const reader = new FileReader()
-      reader.onload = ev => doSubmit(ev.target.result)
-      reader.readAsText(sourceFile, 'utf-8')
-    } else {
-      doSubmit(null)
-    }
+    doSubmit()
   }
 
   return (

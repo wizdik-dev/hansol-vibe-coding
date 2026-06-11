@@ -85,11 +85,8 @@ export default function AppDetail() {
   function handleRun() {
     if (app.type === 'link') {
       window.open(app.externalUrl, '_blank', 'noopener,noreferrer')
-    } else if (app.fileContent) {
-      const blob = new Blob([app.fileContent], { type: 'text/html' })
-      const url = URL.createObjectURL(blob)
-      const win = window.open(url, '_blank', 'noopener')
-      if (win) setTimeout(() => URL.revokeObjectURL(url), 10000)
+    } else if (app.fileUrl) {
+      window.open(app.fileUrl, '_blank', 'noopener,noreferrer')
     }
   }
 
