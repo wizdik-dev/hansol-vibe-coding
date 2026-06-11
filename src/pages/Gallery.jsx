@@ -142,11 +142,11 @@ export default function Gallery() {
       <section className="bg-deep-navy text-on-primary py-20 relative overflow-hidden">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12">
           <div className="max-w-3xl flex flex-col items-start gap-4">
-            <h2 className="font-headline text-4xl md:text-5xl font-extrabold">당신의 코드로 세상을 <br />놀라게 하세요.</h2>
-            <p className="font-body text-base opacity-80 max-w-xl">전 세계 개발자와 기업들이 당신의 결과물을 기다리고 있습니다.</p>
+            <h2 className="font-headline text-4xl md:text-5xl font-extrabold">우리 팀의 아이디어를 <br />함께 나눠요.</h2>
+            <p className="font-body text-base opacity-80 max-w-xl">동료의 아이디어에서 업무 힌트를 얻고, 나의 결과물도 공유해보세요.</p>
             <Link to={user ? '/register' : '/login'}>
               <button className="mt-2 bg-primary-fixed text-on-primary-fixed px-10 py-4 font-label text-sm font-bold rounded-lg hover:bg-primary-fixed-dim transition-all hover:scale-105 shadow-xl">
-                앱 등록 신청하기
+                아이디어 등록하기
               </button>
             </Link>
           </div>
