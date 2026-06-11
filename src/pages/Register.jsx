@@ -635,7 +635,7 @@ export default function Register() {
                 <span className="material-symbols-outlined text-[14px]">shield</span> 등록 후 안내
               </h4>
               <ul className="space-y-2">
-                {['관리자 승인 후 갤러리에 공개됩니다', '앱은 sandbox iframe으로 안전하게 격리 실행됩니다', '부적절한 콘텐츠는 관리자에 의해 삭제될 수 있습니다'].map(txt => (
+                {['등록 즉시 갤러리에 공개됩니다', '앱은 새 탭에서 안전하게 실행됩니다', '부적절한 콘텐츠는 관리자에 의해 삭제될 수 있습니다'].map(txt => (
                   <li key={txt} className="flex items-start gap-2 font-label text-xs text-text-secondary">
                     <span className="material-symbols-outlined text-primary text-[12px] mt-0.5">check</span>{txt}
                   </li>
@@ -646,8 +646,7 @@ export default function Register() {
             <div className="bg-deep-navy text-on-primary p-6 rounded-xl shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-4 opacity-10"><span className="material-symbols-outlined text-[100px]">help_center</span></div>
               <h4 className="font-headline text-lg mb-2 relative z-10">도움이 필요하신가요?</h4>
-              <p className="font-body text-sm opacity-80 mb-4 relative z-10">등록 가이드라인을 확인하거나 관리자에게 문의해 보세요.</p>
-              <a href="#" className="inline-flex items-center gap-1 font-label text-sm hover:underline relative z-10">가이드라인 보기 <span className="material-symbols-outlined text-sm">open_in_new</span></a>
+              <p className="font-body text-sm opacity-80 relative z-10">등록 방법이나 활용에 대해 궁금한 점이 있으시면 경영혁신팀에 문의해 주세요.</p>
             </div>
           </div>
         </aside>
