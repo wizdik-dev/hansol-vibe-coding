@@ -136,10 +136,10 @@ export default function Gallery() {
                 <button
                   key={b.name}
                   onClick={() => setBatch(batch === b.name ? '전체' : b.name)}
-                  className="px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-all border-2"
+                  className="px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-all"
                   style={batch === b.name
-                    ? { backgroundColor: b.color, borderColor: b.color, color: '#fff' }
-                    : { borderColor: b.color + '60', color: b.color }}
+                    ? { backgroundColor: b.color, color: '#fff' }
+                    : { backgroundColor: b.color + '18', color: b.color }}
                 >
                   {b.name}
                 </button>
