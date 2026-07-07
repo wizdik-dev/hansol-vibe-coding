@@ -124,6 +124,14 @@ export default function Gallery() {
                 </button>
               ))}
               {batchList.length > 0 && <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />}
+              {batchList.length > 0 && (
+                <button
+                  onClick={() => setBatch('전체')}
+                  className={`px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-colors ${batch === '전체' ? 'bg-surface-container-high text-on-surface' : 'bg-surface-container text-text-secondary hover:bg-surface-container-high'}`}
+                >
+                  전체
+                </button>
+              )}
               {batchList.map(b => (
                 <button
                   key={b.name}
