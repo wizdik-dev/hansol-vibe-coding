@@ -305,16 +305,28 @@ export async function removeBlockedDomain(domain) {
 }
 
 // ── Education Batches ─────────────────────────────────────────────────────────
+const DEFAULT_BATCH_COLORS = ['#10b981','#0ea5e9','#8b5cf6','#f97316','#ec4899','#14b8a6','#f59e0b','#ef4444']
+
+function normalizeBatches(raw) {
+  const defaults = ['1차교육', '2차교육', '3차교육']
+  const list = raw || defaults
+  return list.map((b, i) =>
+    typeof b === 'string'
+      ? { name: b, color: DEFAULT_BATCH_COLORS[i % DEFAULT_BATCH_COLORS.length] }
+      : b
+  )
+}
+
 export async function getEducationBatches() {
   const snap = await getDoc(doc(db, 'settings', 'educationBatches'))
-  return snap.data()?.batches || ['1차교육', '2차교육', '3차교육']
+  return normalizeBatches(snap.data()?.batches)
 }
 
 export async function getEducationBatchesWithDefault() {
   const snap = await getDoc(doc(db, 'settings', 'educationBatches'))
   const data = snap.data() || {}
   return {
-    batches: data.batches || ['1차교육', '2차교육', '3차교육'],
+    batches: normalizeBatches(data.batches),
     defaultBatch: data.defaultBatch || '',
   }
 }
@@ -323,16 +335,23 @@ export async function setDefaultEducationBatch(name) {
   await setDoc(doc(db, 'settings', 'educationBatches'), { defaultBatch: name }, { merge: true })
 }
 
-export async function addEducationBatch(name) {
-  await setDoc(doc(db, 'settings', 'educationBatches'), { batches: arrayUnion(name) }, { merge: true })
+export async function saveEducationBatches(batches) {
+  await setDoc(doc(db, 'settings', 'educationBatches'), { batches }, { merge: true })
+}
+
+export async function addEducationBatch(name, color) {
+  const { batches } = await getEducationBatchesWithDefault()
+  const newColor = color || DEFAULT_BATCH_COLORS[batches.length % DEFAULT_BATCH_COLORS.length]
+  await saveEducationBatches([...batches, { name, color: newColor }])
 }
 
 export async function removeEducationBatch(name) {
-  await updateDoc(doc(db, 'settings', 'educationBatches'), { batches: arrayRemove(name) })
+  const { batches } = await getEducationBatchesWithDefault()
+  await saveEducationBatches(batches.filter(b => b.name !== name))
 }
 
 export async function reorderEducationBatches(batches) {
-  await setDoc(doc(db, 'settings', 'educationBatches'), { batches }, { merge: true })
+  await saveEducationBatches(batches)
 }
 
 export function isDomainBlocked(url, blockedDomains) {

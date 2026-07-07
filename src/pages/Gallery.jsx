@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import AppCard from '../components/AppCard'
 import { useData } from '../DataContext'
+import { getEducationBatches } from '../store'
 
 const PAGE_SIZE = 12
 
@@ -18,6 +19,15 @@ export default function Gallery() {
   const [category, setCategory] = useState('전체')
   const [sort, setSort] = useState('newest')
   const [type, setType] = useState('전체')
+  const [batchColorMap, setBatchColorMap] = useState({})
+
+  useEffect(() => {
+    getEducationBatches().then(batches => {
+      const map = {}
+      batches.forEach(b => { map[b.name] = b.color })
+      setBatchColorMap(map)
+    })
+  }, [])
   const [authModal, setAuthModal] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const loaderRef = useRef(null)
@@ -156,7 +166,7 @@ export default function Gallery() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {visibleApps.map(app => (
-                <AppCard key={app.id} app={app} onAuthRequired={() => setAuthModal(true)} />
+                <AppCard key={app.id} app={app} onAuthRequired={() => setAuthModal(true)} batchColorMap={batchColorMap} />
               ))}
             </div>
             {hasMore && (

@@ -122,7 +122,7 @@ export default function Admin() {
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
     getUsers, adminDeleteUser, adminSendPasswordReset,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
-    getEducationBatchesWithDefault, setDefaultEducationBatch } = useData()
+    getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches } = useData()
 
   const [section, setSection] = useState('stats')
   const [reports, setReports] = useState([])
@@ -138,8 +138,10 @@ export default function Admin() {
   const [educationBatches, setEducationBatches] = useState([])
   const [defaultBatch, setDefaultBatch] = useState('')
   const [newBatch, setNewBatch] = useState('')
+  const [newBatchColor, setNewBatchColor] = useState('#10b981')
   const [editingBatchIdx, setEditingBatchIdx] = useState(null)
   const [editingBatchVal, setEditingBatchVal] = useState('')
+  const [editingBatchColor, setEditingBatchColor] = useState('')
 
   async function handleEditSave(form) {
     await updateApp(editingApp.id, form)
@@ -153,9 +155,10 @@ export default function Admin() {
 
   async function handleAddBatch() {
     const name = newBatch.trim()
-    if (!name || educationBatches.includes(name)) return
-    await addEducationBatch(name)
+    if (!name || educationBatches.some(b => b.name === name)) return
+    await addEducationBatch(name, newBatchColor)
     setNewBatch('')
+    setNewBatchColor('#10b981')
     await refreshBatches()
   }
 
@@ -168,12 +171,19 @@ export default function Admin() {
 
   async function handleSaveBatchEdit(idx) {
     const newVal = editingBatchVal.trim()
-    if (!newVal || newVal === educationBatches[idx]) { setEditingBatchIdx(null); return }
-    const updated = educationBatches.map((b, i) => i === idx ? newVal : b)
-    await reorderEducationBatches(updated)
-    if (defaultBatch === educationBatches[idx]) await setDefaultEducationBatch(newVal)
+    if (!newVal) { setEditingBatchIdx(null); return }
+    const oldName = educationBatches[idx].name
+    const updated = educationBatches.map((b, i) => i === idx ? { name: newVal, color: editingBatchColor } : b)
+    await saveEducationBatches(updated)
+    if (defaultBatch === oldName && newVal !== oldName) await setDefaultEducationBatch(newVal)
     setEditingBatchIdx(null)
     await refreshBatches()
+  }
+
+  async function handleBatchColorChange(idx, color) {
+    const updated = educationBatches.map((b, i) => i === idx ? { ...b, color } : b)
+    await saveEducationBatches(updated)
+    setEducationBatches(updated)
   }
 
   async function handleSetDefault(name) {
@@ -537,31 +547,42 @@ export default function Admin() {
                       <p className="font-label text-xs text-text-secondary mb-3">교육 차수 미설정 과제 일괄 적용</p>
                       <div className="flex flex-wrap gap-2">
                         {educationBatches.map(b => (
-                          <button key={b} onClick={() => handleBulkSetBatch(b)}
-                            className="px-4 py-1.5 border border-outline-variant rounded-full font-label text-xs text-text-secondary hover:border-primary hover:text-primary transition-colors">
-                            {b} 으로 일괄 적용
+                          <button key={b.name} onClick={() => handleBulkSetBatch(b.name)}
+                            style={{ borderColor: b.color, color: b.color }}
+                            className="px-4 py-1.5 border rounded-full font-label text-xs hover:opacity-70 transition-opacity">
+                            {b.name} 으로 일괄 적용
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
-                  <div className="flex gap-3 mb-6">
-                    <input
-                      value={newBatch}
-                      onChange={e => setNewBatch(e.target.value)}
-                      className="flex-1 bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary p-3 font-label text-sm outline-none"
-                      placeholder="새 교육 차수 입력 (예: 4차교육)"
-                      onKeyDown={e => e.key === 'Enter' && handleAddBatch()}
-                    />
-                    <button onClick={handleAddBatch} className="bg-primary text-on-primary font-label text-sm font-bold px-5 py-2 rounded-lg hover:bg-deep-navy transition-colors">추가</button>
+                  {/* 새 차수 추가 */}
+                  <div className="flex gap-3 mb-6 items-end">
+                    <div className="flex-1">
+                      <label className="block font-label text-xs text-text-secondary mb-1">차수 이름</label>
+                      <input
+                        value={newBatch}
+                        onChange={e => setNewBatch(e.target.value)}
+                        className="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary p-3 font-label text-sm outline-none"
+                        placeholder="새 교육 차수 입력 (예: 4차교육)"
+                        onKeyDown={e => e.key === 'Enter' && handleAddBatch()}
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-label text-xs text-text-secondary mb-1">색상</label>
+                      <input type="color" value={newBatchColor} onChange={e => setNewBatchColor(e.target.value)}
+                        className="w-12 h-11 rounded-lg border border-outline-variant cursor-pointer p-0.5 bg-transparent" />
+                    </div>
+                    <button onClick={handleAddBatch} className="bg-primary text-on-primary font-label text-sm font-bold px-5 py-3 rounded-lg hover:bg-deep-navy transition-colors">추가</button>
                   </div>
                   <div className="space-y-2">
                     {educationBatches.length === 0 && (
                       <p className="font-body text-sm text-outline italic">등록된 교육 차수가 없습니다.</p>
                     )}
                     {educationBatches.map((batch, idx) => (
-                      <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg ${defaultBatch === batch ? 'bg-primary/10 border border-primary/30' : 'bg-surface-container-low'}`}>
-                        <span className={`material-symbols-outlined text-[18px] ${defaultBatch === batch ? 'text-primary' : 'text-outline'}`}>school</span>
+                      <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg ${defaultBatch === batch.name ? 'border' : 'bg-surface-container-low'}`}
+                        style={defaultBatch === batch.name ? { backgroundColor: batch.color + '15', borderColor: batch.color + '50' } : {}}>
+                        <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: batch.color }} />
                         {editingBatchIdx === idx ? (
                           <>
                             <input
@@ -571,6 +592,8 @@ export default function Admin() {
                               onKeyDown={e => { if (e.key === 'Enter') handleSaveBatchEdit(idx); if (e.key === 'Escape') setEditingBatchIdx(null) }}
                               autoFocus
                             />
+                            <input type="color" value={editingBatchColor} onChange={e => setEditingBatchColor(e.target.value)}
+                              className="w-9 h-9 rounded border border-outline-variant cursor-pointer p-0.5 bg-transparent flex-shrink-0" />
                             <button onClick={() => handleSaveBatchEdit(idx)} className="text-primary hover:opacity-70 transition-opacity">
                               <span className="material-symbols-outlined text-[18px]">check</span>
                             </button>
@@ -580,17 +603,18 @@ export default function Admin() {
                           </>
                         ) : (
                           <>
-                            <span className="flex-1 font-label text-sm text-on-surface">{batch}</span>
-                            {defaultBatch === batch && (
-                              <span className="font-label text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">기본값</span>
+                            <span className="flex-1 font-label text-sm text-on-surface">{batch.name}</span>
+                            {defaultBatch === batch.name && (
+                              <span className="font-label text-xs px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: batch.color }}>기본값</span>
                             )}
-                            <button onClick={() => handleSetDefault(batch)} className={`hover:opacity-70 transition-opacity ${defaultBatch === batch ? 'text-primary' : 'text-outline'}`} title={defaultBatch === batch ? '기본값 해제' : '기본값으로 설정'}>
-                              <span className="material-symbols-outlined text-[18px]">{defaultBatch === batch ? 'star' : 'star_border'}</span>
+                            <button onClick={() => handleSetDefault(batch.name)} className="hover:opacity-70 transition-opacity text-outline" title={defaultBatch === batch.name ? '기본값 해제' : '기본값으로 설정'}
+                              style={defaultBatch === batch.name ? { color: batch.color } : {}}>
+                              <span className="material-symbols-outlined text-[18px]">{defaultBatch === batch.name ? 'star' : 'star_border'}</span>
                             </button>
-                            <button onClick={() => { setEditingBatchIdx(idx); setEditingBatchVal(batch) }} className="text-primary hover:opacity-70 transition-opacity" title="수정">
+                            <button onClick={() => { setEditingBatchIdx(idx); setEditingBatchVal(batch.name); setEditingBatchColor(batch.color) }} className="text-primary hover:opacity-70 transition-opacity" title="수정">
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
-                            <button onClick={() => handleRemoveBatch(batch)} className="text-error hover:opacity-70 transition-opacity" title="삭제">
+                            <button onClick={() => handleRemoveBatch(batch.name)} className="text-error hover:opacity-70 transition-opacity" title="삭제">
                               <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                           </>

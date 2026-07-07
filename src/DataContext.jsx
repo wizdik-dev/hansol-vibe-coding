@@ -16,7 +16,7 @@ import {
   validateFile, validateAttachment, uploadAttachment, deleteAttachment, updateAppAttachments,
   uploadHtmlFile,
   getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
-  getEducationBatchesWithDefault, setDefaultEducationBatch,
+  getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches,
 } from './store'
 
 const DataContext = createContext(null)
@@ -221,7 +221,7 @@ export function DataProvider({ children }) {
     validateFile, validateAttachment, uploadAttachment, deleteAttachment, updateAppAttachments,
     uploadHtmlFile,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
-    getEducationBatchesWithDefault, setDefaultEducationBatch,
+    getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
