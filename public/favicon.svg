@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Subtle top highlight -->
+  <rect width="32" height="16" rx="7" fill="white" fill-opacity="0.04"/>
+  <!-- > symbol -->
+  <polyline points="6,11 12,16 6,21" stroke="url(#accent)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- _ cursor -->
+  <line x1="15" y1="21" x2="26" y2="21" stroke="#60a5fa" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>
+  <!-- Dot accent (top right) -->
+  <circle cx="26" cy="7" r="2.2" fill="#818cf8" opacity="0.8"/>
+</svg>
