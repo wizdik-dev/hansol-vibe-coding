@@ -28,6 +28,7 @@ function AppEditModal({ app, onClose, onSave }) {
   const [saving, setSaving] = useState(false)
   const [newHtmlFile, setNewHtmlFile] = useState(null)
   const [htmlUploadProgress, setHtmlUploadProgress] = useState(null)
+  const [isDraggingHtml, setIsDraggingHtml] = useState(false)
 
   function toggleTag(tag) {
     setForm(f => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag] }))
@@ -108,12 +109,26 @@ function AppEditModal({ app, onClose, onSave }) {
                   <div className="h-full bg-primary transition-all" style={{ width: `${htmlUploadProgress}%` }} />
                 </div>
               )}
-              <label className="cursor-pointer flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-outline-variant hover:border-primary rounded-lg font-label text-sm text-text-secondary hover:text-primary transition-colors w-fit">
-                <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                {newHtmlFile ? '다른 파일 선택' : 'HTML 파일 선택 (.html)'}
-                <input type="file" accept=".html" className="sr-only"
-                  onChange={e => { if (e.target.files[0]) setNewHtmlFile(e.target.files[0]); e.target.value = '' }} />
-              </label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${isDraggingHtml ? 'border-primary bg-primary/5' : 'border-outline-variant'}`}
+                onDragEnter={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingHtml(true) }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingHtml(true) }}
+                onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setIsDraggingHtml(false) }}
+                onDrop={e => {
+                  e.preventDefault(); e.stopPropagation(); setIsDraggingHtml(false)
+                  const file = e.dataTransfer.files[0]
+                  if (file && file.name.endsWith('.html')) setNewHtmlFile(file)
+                }}
+              >
+                <span className="material-symbols-outlined text-2xl text-outline mb-1">upload_file</span>
+                <p className="font-label text-xs text-text-secondary mb-2">{isDraggingHtml ? '여기에 놓으세요' : 'HTML 파일을 드래그하거나'}</p>
+                <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-on-primary font-label text-xs font-bold rounded-lg hover:bg-deep-navy transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">folder_open</span>
+                  파일 선택
+                  <input type="file" accept=".html" className="sr-only"
+                    onChange={e => { if (e.target.files[0]) setNewHtmlFile(e.target.files[0]); e.target.value = '' }} />
+                </label>
+              </div>
             </div>
           )}
           {app.type === 'link' && (
