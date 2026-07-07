@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { isDomainBlocked, getBlockedDomains, getEducationBatches } from '../store'
+import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -21,7 +21,12 @@ export default function Register() {
   const [step, setStep] = useState(1)
 
   useEffect(() => { getBlockedDomains().then(setBlockedDomains) }, [])
-  useEffect(() => { getEducationBatches().then(setEducationBatches) }, [])
+  useEffect(() => {
+    getEducationBatchesWithDefault().then(({ batches, defaultBatch }) => {
+      setEducationBatches(batches)
+      if (defaultBatch) setForm(f => ({ ...f, educationBatch: defaultBatch }))
+    })
+  }, [])
   const [type, setType] = useState('file')
   const [form, setForm] = useState({ title: '', description: '', category: '회계/재무', tags: [], educationBatch: '', externalUrl: '', embedMode: 'newtab' })
   const [thumbnail, setThumbnail] = useState(null)

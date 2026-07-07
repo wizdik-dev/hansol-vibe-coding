@@ -310,6 +310,19 @@ export async function getEducationBatches() {
   return snap.data()?.batches || ['1차교육', '2차교육', '3차교육']
 }
 
+export async function getEducationBatchesWithDefault() {
+  const snap = await getDoc(doc(db, 'settings', 'educationBatches'))
+  const data = snap.data() || {}
+  return {
+    batches: data.batches || ['1차교육', '2차교육', '3차교육'],
+    defaultBatch: data.defaultBatch || '',
+  }
+}
+
+export async function setDefaultEducationBatch(name) {
+  await setDoc(doc(db, 'settings', 'educationBatches'), { defaultBatch: name }, { merge: true })
+}
+
 export async function addEducationBatch(name) {
   await setDoc(doc(db, 'settings', 'educationBatches'), { batches: arrayUnion(name) }, { merge: true })
 }

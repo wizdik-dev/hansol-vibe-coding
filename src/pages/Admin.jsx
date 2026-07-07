@@ -121,7 +121,8 @@ export default function Admin() {
     getReports, resolveReport, getNotices, addNotice, deleteNotice,
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
     getUsers, adminDeleteUser, adminSendPasswordReset,
-    getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches } = useData()
+    getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
+    getEducationBatchesWithDefault, setDefaultEducationBatch } = useData()
 
   const [section, setSection] = useState('stats')
   const [reports, setReports] = useState([])
@@ -135,6 +136,7 @@ export default function Admin() {
   const [pwResetMsg, setPwResetMsg] = useState('')
   const [editingApp, setEditingApp] = useState(null)
   const [educationBatches, setEducationBatches] = useState([])
+  const [defaultBatch, setDefaultBatch] = useState('')
   const [newBatch, setNewBatch] = useState('')
   const [editingBatchIdx, setEditingBatchIdx] = useState(null)
   const [editingBatchVal, setEditingBatchVal] = useState('')
@@ -144,20 +146,24 @@ export default function Admin() {
     setEditingApp(null)
   }
 
+  async function refreshBatches() {
+    const { batches, defaultBatch: db_ } = await getEducationBatchesWithDefault()
+    setEducationBatches(batches); setDefaultBatch(db_)
+  }
+
   async function handleAddBatch() {
     const name = newBatch.trim()
     if (!name || educationBatches.includes(name)) return
     await addEducationBatch(name)
     setNewBatch('')
-    const updated = await getEducationBatches()
-    setEducationBatches(updated)
+    await refreshBatches()
   }
 
   async function handleRemoveBatch(name) {
     if (!window.confirm(`'${name}'을(를) 삭제하시겠습니까?`)) return
     await removeEducationBatch(name)
-    const updated = await getEducationBatches()
-    setEducationBatches(updated)
+    if (defaultBatch === name) await setDefaultEducationBatch('')
+    await refreshBatches()
   }
 
   async function handleSaveBatchEdit(idx) {
@@ -165,8 +171,15 @@ export default function Admin() {
     if (!newVal || newVal === educationBatches[idx]) { setEditingBatchIdx(null); return }
     const updated = educationBatches.map((b, i) => i === idx ? newVal : b)
     await reorderEducationBatches(updated)
-    setEducationBatches(updated)
+    if (defaultBatch === educationBatches[idx]) await setDefaultEducationBatch(newVal)
     setEditingBatchIdx(null)
+    await refreshBatches()
+  }
+
+  async function handleSetDefault(name) {
+    const next = defaultBatch === name ? '' : name
+    await setDefaultEducationBatch(next)
+    setDefaultBatch(next)
   }
 
   useEffect(() => {
@@ -174,11 +187,12 @@ export default function Admin() {
   }, [isAdmin])
 
   const refresh = useCallback(async () => {
-    const [r, n, s, b, u, eb] = await Promise.all([
-      getReports(), getNotices(), getAdminStats(), getBlockedDomains(), getUsers(), getEducationBatches(),
+    const [r, n, s, b, u, ebData] = await Promise.all([
+      getReports(), getNotices(), getAdminStats(), getBlockedDomains(), getUsers(), getEducationBatchesWithDefault(),
     ])
-    setReports(r); setNotices(n); setStats(s); setBlocked(b); setUsers(u); setEducationBatches(eb)
-  }, [getReports, getNotices, getAdminStats, getBlockedDomains, getUsers, getEducationBatches])
+    setReports(r); setNotices(n); setStats(s); setBlocked(b); setUsers(u)
+    setEducationBatches(ebData.batches); setDefaultBatch(ebData.defaultBatch)
+  }, [getReports, getNotices, getAdminStats, getBlockedDomains, getUsers, getEducationBatchesWithDefault])
 
   useEffect(() => { if (isAdmin) refresh() }, [isAdmin])
 
@@ -526,8 +540,8 @@ export default function Admin() {
                       <p className="font-body text-sm text-outline italic">등록된 교육 차수가 없습니다.</p>
                     )}
                     {educationBatches.map((batch, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg">
-                        <span className="material-symbols-outlined text-[18px] text-outline">school</span>
+                      <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg ${defaultBatch === batch ? 'bg-primary/10 border border-primary/30' : 'bg-surface-container-low'}`}>
+                        <span className={`material-symbols-outlined text-[18px] ${defaultBatch === batch ? 'text-primary' : 'text-outline'}`}>school</span>
                         {editingBatchIdx === idx ? (
                           <>
                             <input
@@ -547,6 +561,12 @@ export default function Admin() {
                         ) : (
                           <>
                             <span className="flex-1 font-label text-sm text-on-surface">{batch}</span>
+                            {defaultBatch === batch && (
+                              <span className="font-label text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">기본값</span>
+                            )}
+                            <button onClick={() => handleSetDefault(batch)} className={`hover:opacity-70 transition-opacity ${defaultBatch === batch ? 'text-primary' : 'text-outline'}`} title={defaultBatch === batch ? '기본값 해제' : '기본값으로 설정'}>
+                              <span className="material-symbols-outlined text-[18px]">{defaultBatch === batch ? 'star' : 'star_border'}</span>
+                            </button>
                             <button onClick={() => { setEditingBatchIdx(idx); setEditingBatchVal(batch) }} className="text-primary hover:opacity-70 transition-opacity" title="수정">
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
