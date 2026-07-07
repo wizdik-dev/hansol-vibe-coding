@@ -110,8 +110,7 @@ export default function Gallery() {
 
       {/* Filter bar */}
       <section className="bg-surface-white border-y border-outline-variant sticky top-16 md:top-20 z-40">
-        <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-3 flex flex-col gap-2">
-          {/* 1행: 타입 + 교육 차수 + 정렬 */}
+        <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
               {['전체', 'HTML', '외부링크'].map(t => (
@@ -144,6 +143,24 @@ export default function Gallery() {
                   {b.name}
                 </button>
               ))}
+              <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />
+              <span className="material-symbols-outlined text-[15px] text-outline flex-shrink-0">category</span>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="bg-transparent border-none focus:ring-0 font-label text-xs text-text-secondary font-bold cursor-pointer outline-none whitespace-nowrap"
+              >
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {(category !== '전체' || type !== '전체' || batch !== '전체') && (
+                <button
+                  onClick={() => { setCategory('전체'); setType('전체'); setBatch('전체') }}
+                  className="font-label text-xs text-error flex items-center gap-0.5 hover:underline whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[13px]">close</span>
+                  초기화
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <select
@@ -160,26 +177,6 @@ export default function Gallery() {
                 </button>
               )}
             </div>
-          </div>
-          {/* 2행: 카테고리 드롭다운 */}
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px] text-outline flex-shrink-0">category</span>
-            <select
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 font-label text-xs text-text-secondary font-bold cursor-pointer outline-none"
-            >
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            {(category !== '전체' || type !== '전체' || batch !== '전체') && (
-              <button
-                onClick={() => { setCategory('전체'); setType('전체'); setBatch('전체') }}
-                className="ml-1 font-label text-xs text-error flex items-center gap-0.5 hover:underline"
-              >
-                <span className="material-symbols-outlined text-[13px]">close</span>
-                필터 초기화
-              </button>
-            )}
           </div>
         </div>
       </section>
