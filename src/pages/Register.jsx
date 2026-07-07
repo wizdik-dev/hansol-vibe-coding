@@ -249,7 +249,7 @@ export default function Register() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { value: 'file', icon: 'html', title: 'HTML 업로드', desc: '정적 웹사이트를 ZIP 또는 단일 HTML로 업로드합니다. (.html .css .js .zip / 최대 50MB)' },
-                    { value: 'link', icon: 'link', title: '외부 링크 연결', desc: 'GitHub Pages, Vercel, Railway 등 배포된 라이브 URL을 등록합니다.' },
+                    { value: 'link', icon: 'link', title: '외부 링크 연결', desc: 'Streamlit, Vercel 등 배포된 라이브 URL을 등록합니다.' },
                   ].map(opt => (
                     <label key={opt.value} className={`flex flex-col items-center p-8 border-2 cursor-pointer rounded-xl transition-all ${type === opt.value ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary bg-surface-container-low'}`}>
                       <input type="radio" name="type" value={opt.value} checked={type === opt.value} onChange={() => setType(opt.value)} className="sr-only" />
