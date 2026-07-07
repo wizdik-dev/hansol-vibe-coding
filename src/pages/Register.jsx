@@ -335,7 +335,7 @@ export default function Register() {
                   <label className="block font-label text-sm text-primary mb-2">교육 차수</label>
                   <select value={form.educationBatch} onChange={e => update('educationBatch', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none">
                     <option value="">선택 안 함</option>
-                    {educationBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                    {educationBatches.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
                   </select>
                 </div>
                 {type === 'link' && (
