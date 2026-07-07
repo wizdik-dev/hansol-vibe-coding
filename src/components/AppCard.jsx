@@ -32,11 +32,11 @@ export default function AppCard({ app, onAuthRequired }) {
           />
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
             {app.educationBatch && (
-              <span className="bg-secondary/80 backdrop-blur-md text-on-secondary font-label text-xs px-3 py-1 rounded-full">
+              <span className="bg-emerald-500 text-white font-label text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                 {app.educationBatch}
               </span>
             )}
-            <span className={`${app.type === 'file' ? 'bg-deep-navy/80' : 'bg-primary/80'} backdrop-blur-md text-on-primary font-label text-xs px-3 py-1 rounded-full uppercase`}>
+            <span className={`${app.type === 'file' ? 'bg-violet-600' : 'bg-sky-500'} text-white font-label text-xs font-bold px-3 py-1 rounded-full shadow-sm uppercase`}>
               {app.type === 'file' ? 'HTML' : 'EXTERNAL'}
             </span>
           </div>
