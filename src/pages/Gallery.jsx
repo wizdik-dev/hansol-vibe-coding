@@ -150,7 +150,7 @@ export default function Gallery() {
                 onChange={e => setCategory(e.target.value)}
                 className="bg-transparent border-none focus:ring-0 font-label text-xs text-text-secondary font-bold cursor-pointer outline-none whitespace-nowrap"
               >
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {CATEGORIES.map(c => <option key={c} value={c}>{c === '전체' ? '카테고리' : c}</option>)}
               </select>
               {(category !== '전체' || type !== '전체' || batch !== '전체') && (
                 <button
