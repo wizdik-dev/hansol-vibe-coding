@@ -1,6 +1,24 @@
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext'
 
+const BATCH_COLORS = [
+  'bg-emerald-500',
+  'bg-orange-500',
+  'bg-pink-500',
+  'bg-indigo-500',
+  'bg-amber-500',
+  'bg-teal-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+]
+
+function batchColor(name) {
+  if (!name) return BATCH_COLORS[0]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  return BATCH_COLORS[hash % BATCH_COLORS.length]
+}
+
 export default function AppCard({ app, onAuthRequired }) {
   const { user, userLikes, userBookmarks, toggleLike, toggleBookmark } = useData()
 
@@ -32,7 +50,7 @@ export default function AppCard({ app, onAuthRequired }) {
           />
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
             {app.educationBatch && (
-              <span className="bg-emerald-500 text-white font-label text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+              <span className={`${batchColor(app.educationBatch)} text-white font-label text-xs font-bold px-3 py-1 rounded-full shadow-sm`}>
                 {app.educationBatch}
               </span>
             )}
