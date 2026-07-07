@@ -6,6 +6,12 @@ import { validateAttachment } from '../store'
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
 
+function normalizeUrl(url) {
+  if (!url) return url
+  if (/^https?:\/\//i.test(url)) return url
+  return 'https://' + url
+}
+
 function EditModal({ app, onClose, onSave }) {
   const { uploadAttachment, deleteAttachment, updateAppAttachments } = useData()
   const [form, setForm] = useState({
@@ -13,6 +19,7 @@ function EditModal({ app, onClose, onSave }) {
     description: app.description || '',
     category: app.category || CATEGORIES[0],
     tags: Array.isArray(app.tags) ? app.tags : [],
+    externalUrl: app.externalUrl || '',
   })
   const [saving, setSaving] = useState(false)
   const [existingAttachments, setExistingAttachments] = useState(app.attachments || [])
@@ -62,7 +69,7 @@ function EditModal({ app, onClose, onSave }) {
       )
       uploaded.push(info)
     }
-    await onSave({ ...form, attachments: [...existingAttachments, ...uploaded] })
+    await onSave({ ...form, externalUrl: normalizeUrl(form.externalUrl), attachments: [...existingAttachments, ...uploaded] })
     setSaving(false)
     onClose()
   }
@@ -121,6 +128,17 @@ function EditModal({ app, onClose, onSave }) {
               ))}
             </div>
           </div>
+          {app.type === 'link' && (
+            <div>
+              <label className="block font-label text-sm text-primary mb-2">외부 링크 URL</label>
+              <input
+                value={form.externalUrl}
+                onChange={e => setForm(f => ({ ...f, externalUrl: e.target.value }))}
+                className="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary p-3 font-body text-sm outline-none transition-all"
+                placeholder="https://"
+              />
+            </div>
+          )}
           {/* 첨부파일 */}
           <div>
             <div className="flex items-center justify-between mb-2">
