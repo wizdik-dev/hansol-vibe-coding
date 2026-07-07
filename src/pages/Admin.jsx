@@ -174,7 +174,7 @@ export default function Admin() {
   const { user, isAdmin, apps: allApps, deleteApp, updateApp,
     getReports, resolveReport, getNotices, addNotice, deleteNotice,
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
-    getUsers, adminDeleteUser, adminSendPasswordReset,
+    getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
     getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches } = useData()
 
@@ -293,6 +293,14 @@ export default function Admin() {
   async function handleDeleteUser(uid) {
     if (!window.confirm('사용자를 삭제하시겠습니까? 복구할 수 없습니다.')) return
     await adminDeleteUser(uid)
+    refresh()
+  }
+
+  async function handleToggleRole(u) {
+    const newRole = u.role === 'admin' ? 'user' : 'admin'
+    const label = newRole === 'admin' ? '관리자로 승격' : '일반 사용자로 변경'
+    if (!window.confirm(`${u.name || u.email}을(를) ${label}하시겠습니까?`)) return
+    await adminSetRole(u.id, newRole)
     refresh()
   }
   async function handlePasswordReset(email) {
@@ -498,6 +506,13 @@ export default function Admin() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleToggleRole(u)}
+                                className={`p-1.5 rounded transition-colors ${u.role === 'admin' ? 'text-warning hover:bg-warning/10' : 'text-secondary hover:bg-secondary/10'}`}
+                                title={u.role === 'admin' ? '일반 사용자로 변경' : '관리자로 승격'}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">{u.role === 'admin' ? 'manage_accounts' : 'admin_panel_settings'}</span>
+                              </button>
                               <button
                                 onClick={() => handlePasswordReset(u.email)}
                                 className="p-1.5 text-primary hover:bg-primary/10 rounded transition-colors"

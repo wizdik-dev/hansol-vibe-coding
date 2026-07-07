@@ -268,6 +268,10 @@ export async function adminDeleteUser(uid) {
   await deleteDoc(doc(db, 'users', uid))
 }
 
+export async function adminSetRole(uid, role) {
+  await updateDoc(doc(db, 'users', uid), { role })
+}
+
 export async function adminSendPasswordReset(email) {
   await sendPasswordResetEmail(auth, email)
 }
