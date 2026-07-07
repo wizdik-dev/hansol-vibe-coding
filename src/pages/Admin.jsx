@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useData } from '../DataContext'
+import { uploadHtmlFile } from '../store'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -25,6 +26,8 @@ function AppEditModal({ app, onClose, onSave }) {
     externalUrl: app.externalUrl || '',
   })
   const [saving, setSaving] = useState(false)
+  const [newHtmlFile, setNewHtmlFile] = useState(null)
+  const [htmlUploadProgress, setHtmlUploadProgress] = useState(null)
 
   function toggleTag(tag) {
     setForm(f => ({ ...f, tags: f.tags.includes(tag) ? f.tags.filter(t => t !== tag) : [...f.tags, tag] }))
@@ -34,7 +37,12 @@ function AppEditModal({ app, onClose, onSave }) {
     e.preventDefault()
     if (!form.title.trim() || !form.description.trim()) return
     setSaving(true)
-    await onSave({ ...form, externalUrl: normalizeUrl(form.externalUrl) })
+    let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl) }
+    if (app.type === 'file' && newHtmlFile) {
+      const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
+      saveData.fileUrl = result.url
+    }
+    await onSave(saveData)
     setSaving(false)
     onClose()
   }
@@ -77,6 +85,37 @@ function AppEditModal({ app, onClose, onSave }) {
               ))}
             </div>
           </div>
+          {app.type === 'file' && (
+            <div>
+              <label className="block font-label text-sm text-primary mb-2">HTML 파일 교체</label>
+              {app.fileUrl && !newHtmlFile && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-surface-container rounded-lg">
+                  <span className="material-symbols-outlined text-[16px] text-primary">html</span>
+                  <span className="font-label text-xs text-text-secondary flex-1">현재 파일 등록됨</span>
+                </div>
+              )}
+              {newHtmlFile && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-primary/5 border border-primary/30 rounded-lg">
+                  <span className="material-symbols-outlined text-[16px] text-primary">html</span>
+                  <span className="font-label text-xs text-primary truncate flex-1">{newHtmlFile.name}</span>
+                  <button type="button" onClick={() => setNewHtmlFile(null)} className="text-text-secondary hover:text-error transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                </div>
+              )}
+              {htmlUploadProgress !== null && htmlUploadProgress < 100 && (
+                <div className="mb-2 h-1.5 bg-surface-container rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${htmlUploadProgress}%` }} />
+                </div>
+              )}
+              <label className="cursor-pointer flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-outline-variant hover:border-primary rounded-lg font-label text-sm text-text-secondary hover:text-primary transition-colors w-fit">
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                {newHtmlFile ? '다른 파일 선택' : 'HTML 파일 선택 (.html)'}
+                <input type="file" accept=".html" className="sr-only"
+                  onChange={e => { if (e.target.files[0]) setNewHtmlFile(e.target.files[0]); e.target.value = '' }} />
+              </label>
+            </div>
+          )}
           {app.type === 'link' && (
             <div>
               <label className="block font-label text-sm text-primary mb-2">외부 링크 URL</label>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { validateAttachment } from '../store'
+import { validateAttachment, uploadHtmlFile } from '../store'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
@@ -26,6 +26,8 @@ function EditModal({ app, onClose, onSave }) {
   const [newAttachments, setNewAttachments] = useState([])
   const [uploadProgress, setUploadProgress] = useState({})
   const [isDragging, setIsDragging] = useState(false)
+  const [newHtmlFile, setNewHtmlFile] = useState(null)
+  const [htmlUploadProgress, setHtmlUploadProgress] = useState(null)
 
   function toggleTag(tag) {
     setForm(f => ({
@@ -69,7 +71,12 @@ function EditModal({ app, onClose, onSave }) {
       )
       uploaded.push(info)
     }
-    await onSave({ ...form, externalUrl: normalizeUrl(form.externalUrl), attachments: [...existingAttachments, ...uploaded] })
+    let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl), attachments: [...existingAttachments, ...uploaded] }
+    if (app.type === 'file' && newHtmlFile) {
+      const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
+      saveData.fileUrl = result.url
+    }
+    await onSave(saveData)
     setSaving(false)
     onClose()
   }
@@ -128,6 +135,37 @@ function EditModal({ app, onClose, onSave }) {
               ))}
             </div>
           </div>
+          {app.type === 'file' && (
+            <div>
+              <label className="block font-label text-sm text-primary mb-2">HTML 파일 교체</label>
+              {app.fileUrl && !newHtmlFile && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-surface-container rounded-lg">
+                  <span className="material-symbols-outlined text-[16px] text-primary">html</span>
+                  <span className="font-label text-xs text-text-secondary truncate flex-1">현재 파일 등록됨</span>
+                </div>
+              )}
+              {newHtmlFile && (
+                <div className="flex items-center gap-2 mb-2 p-2 bg-primary/5 border border-primary/30 rounded-lg">
+                  <span className="material-symbols-outlined text-[16px] text-primary">html</span>
+                  <span className="font-label text-xs text-primary truncate flex-1">{newHtmlFile.name}</span>
+                  <button type="button" onClick={() => setNewHtmlFile(null)} className="text-text-secondary hover:text-error transition-colors">
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                </div>
+              )}
+              {htmlUploadProgress !== null && htmlUploadProgress < 100 && (
+                <div className="mb-2 h-1.5 bg-surface-container rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all" style={{ width: `${htmlUploadProgress}%` }} />
+                </div>
+              )}
+              <label className="cursor-pointer flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-outline-variant hover:border-primary rounded-lg font-label text-sm text-text-secondary hover:text-primary transition-colors w-fit">
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                {newHtmlFile ? '다른 파일 선택' : 'HTML 파일 선택 (.html)'}
+                <input type="file" accept=".html" className="sr-only"
+                  onChange={e => { if (e.target.files[0]) setNewHtmlFile(e.target.files[0]); e.target.value = '' }} />
+              </label>
+            </div>
+          )}
           {app.type === 'link' && (
             <div>
               <label className="block font-label text-sm text-primary mb-2">외부 링크 URL</label>
