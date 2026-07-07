@@ -3,17 +3,22 @@ import { useData } from '../DataContext'
 
 const BATCH_COLORS = [
   'bg-emerald-500',
+  'bg-sky-500',
+  'bg-violet-500',
   'bg-orange-500',
   'bg-pink-500',
-  'bg-indigo-500',
-  'bg-amber-500',
   'bg-teal-500',
+  'bg-amber-500',
   'bg-rose-500',
-  'bg-cyan-500',
 ]
 
 function batchColor(name) {
   if (!name) return BATCH_COLORS[0]
+  const match = name.match(/(\d+)/)
+  if (match) {
+    const n = parseInt(match[1], 10)
+    return BATCH_COLORS[(n - 1) % BATCH_COLORS.length]
+  }
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
   return BATCH_COLORS[hash % BATCH_COLORS.length]
