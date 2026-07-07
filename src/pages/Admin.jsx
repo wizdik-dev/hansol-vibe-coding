@@ -120,7 +120,8 @@ export default function Admin() {
   const { user, isAdmin, apps: allApps, deleteApp, updateApp,
     getReports, resolveReport, getNotices, addNotice, deleteNotice,
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
-    getUsers, adminDeleteUser, adminSendPasswordReset } = useData()
+    getUsers, adminDeleteUser, adminSendPasswordReset,
+    getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches } = useData()
 
   const [section, setSection] = useState('stats')
   const [reports, setReports] = useState([])
@@ -133,10 +134,39 @@ export default function Admin() {
   const [appFilter, setAppFilter] = useState('all')
   const [pwResetMsg, setPwResetMsg] = useState('')
   const [editingApp, setEditingApp] = useState(null)
+  const [educationBatches, setEducationBatches] = useState([])
+  const [newBatch, setNewBatch] = useState('')
+  const [editingBatchIdx, setEditingBatchIdx] = useState(null)
+  const [editingBatchVal, setEditingBatchVal] = useState('')
 
   async function handleEditSave(form) {
     await updateApp(editingApp.id, form)
     setEditingApp(null)
+  }
+
+  async function handleAddBatch() {
+    const name = newBatch.trim()
+    if (!name || educationBatches.includes(name)) return
+    await addEducationBatch(name)
+    setNewBatch('')
+    const updated = await getEducationBatches()
+    setEducationBatches(updated)
+  }
+
+  async function handleRemoveBatch(name) {
+    if (!window.confirm(`'${name}'을(를) 삭제하시겠습니까?`)) return
+    await removeEducationBatch(name)
+    const updated = await getEducationBatches()
+    setEducationBatches(updated)
+  }
+
+  async function handleSaveBatchEdit(idx) {
+    const newVal = editingBatchVal.trim()
+    if (!newVal || newVal === educationBatches[idx]) { setEditingBatchIdx(null); return }
+    const updated = educationBatches.map((b, i) => i === idx ? newVal : b)
+    await reorderEducationBatches(updated)
+    setEducationBatches(updated)
+    setEditingBatchIdx(null)
   }
 
   useEffect(() => {
@@ -144,11 +174,11 @@ export default function Admin() {
   }, [isAdmin])
 
   const refresh = useCallback(async () => {
-    const [r, n, s, b, u] = await Promise.all([
-      getReports(), getNotices(), getAdminStats(), getBlockedDomains(), getUsers(),
+    const [r, n, s, b, u, eb] = await Promise.all([
+      getReports(), getNotices(), getAdminStats(), getBlockedDomains(), getUsers(), getEducationBatches(),
     ])
-    setReports(r); setNotices(n); setStats(s); setBlocked(b); setUsers(u)
-  }, [getReports, getNotices, getAdminStats, getBlockedDomains, getUsers])
+    setReports(r); setNotices(n); setStats(s); setBlocked(b); setUsers(u); setEducationBatches(eb)
+  }, [getReports, getNotices, getAdminStats, getBlockedDomains, getUsers, getEducationBatches])
 
   useEffect(() => { if (isAdmin) refresh() }, [isAdmin])
 
@@ -194,6 +224,7 @@ export default function Admin() {
     { id: 'users', icon: 'group', label: `유저 관리 (${users.length}명)` },
     { id: 'reports', icon: 'flag', label: `신고 관리 (${stats?.pendingReports ?? 0}개)` },
     { id: 'notices', icon: 'campaign', label: '공지사항' },
+    { id: 'education', icon: 'school', label: `교육 차수 관리 (${educationBatches.length}개)` },
     { id: 'security', icon: 'security', label: '보안 설정' },
   ]
 
@@ -470,6 +501,63 @@ export default function Admin() {
                       </button>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* ─── 교육 차수 관리 ─── */}
+            {section === 'education' && (
+              <div className="space-y-6">
+                <div className="bg-surface-white border border-outline-variant rounded-xl p-6">
+                  <h3 className="font-headline text-lg font-bold text-deep-navy mb-2">교육 차수 관리</h3>
+                  <p className="font-body text-sm text-text-secondary mb-5">앱 등록 시 선택할 교육 차수 목록을 관리합니다.</p>
+                  <div className="flex gap-3 mb-6">
+                    <input
+                      value={newBatch}
+                      onChange={e => setNewBatch(e.target.value)}
+                      className="flex-1 bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary p-3 font-label text-sm outline-none"
+                      placeholder="새 교육 차수 입력 (예: 4차교육)"
+                      onKeyDown={e => e.key === 'Enter' && handleAddBatch()}
+                    />
+                    <button onClick={handleAddBatch} className="bg-primary text-on-primary font-label text-sm font-bold px-5 py-2 rounded-lg hover:bg-deep-navy transition-colors">추가</button>
+                  </div>
+                  <div className="space-y-2">
+                    {educationBatches.length === 0 && (
+                      <p className="font-body text-sm text-outline italic">등록된 교육 차수가 없습니다.</p>
+                    )}
+                    {educationBatches.map((batch, idx) => (
+                      <div key={idx} className="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg">
+                        <span className="material-symbols-outlined text-[18px] text-outline">school</span>
+                        {editingBatchIdx === idx ? (
+                          <>
+                            <input
+                              value={editingBatchVal}
+                              onChange={e => setEditingBatchVal(e.target.value)}
+                              className="flex-1 bg-surface-white border-b-2 border-primary px-2 py-1 font-label text-sm outline-none"
+                              onKeyDown={e => { if (e.key === 'Enter') handleSaveBatchEdit(idx); if (e.key === 'Escape') setEditingBatchIdx(null) }}
+                              autoFocus
+                            />
+                            <button onClick={() => handleSaveBatchEdit(idx)} className="text-primary hover:opacity-70 transition-opacity">
+                              <span className="material-symbols-outlined text-[18px]">check</span>
+                            </button>
+                            <button onClick={() => setEditingBatchIdx(null)} className="text-text-secondary hover:opacity-70 transition-opacity">
+                              <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex-1 font-label text-sm text-on-surface">{batch}</span>
+                            <button onClick={() => { setEditingBatchIdx(idx); setEditingBatchVal(batch) }} className="text-primary hover:opacity-70 transition-opacity" title="수정">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button onClick={() => handleRemoveBatch(batch)} className="text-error hover:opacity-70 transition-opacity" title="삭제">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

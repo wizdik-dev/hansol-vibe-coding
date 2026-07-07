@@ -304,6 +304,24 @@ export async function removeBlockedDomain(domain) {
   await updateDoc(doc(db, 'settings', 'blockedDomains'), { domains: arrayRemove(domain) })
 }
 
+// ── Education Batches ─────────────────────────────────────────────────────────
+export async function getEducationBatches() {
+  const snap = await getDoc(doc(db, 'settings', 'educationBatches'))
+  return snap.data()?.batches || ['1차교육', '2차교육', '3차교육']
+}
+
+export async function addEducationBatch(name) {
+  await setDoc(doc(db, 'settings', 'educationBatches'), { batches: arrayUnion(name) }, { merge: true })
+}
+
+export async function removeEducationBatch(name) {
+  await updateDoc(doc(db, 'settings', 'educationBatches'), { batches: arrayRemove(name) })
+}
+
+export async function reorderEducationBatches(batches) {
+  await setDoc(doc(db, 'settings', 'educationBatches'), { batches }, { merge: true })
+}
+
 export function isDomainBlocked(url, blockedDomains) {
   try {
     const host = new URL(url).hostname.replace('www.', '')

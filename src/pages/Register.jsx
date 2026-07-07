@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { isDomainBlocked, getBlockedDomains } from '../store'
+import { isDomainBlocked, getBlockedDomains, getEducationBatches } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -17,11 +17,13 @@ export default function Register() {
   const navigate = useNavigate()
   const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments, uploadHtmlFile } = useData()
   const [blockedDomains, setBlockedDomains] = useState([])
+  const [educationBatches, setEducationBatches] = useState([])
   const [step, setStep] = useState(1)
 
   useEffect(() => { getBlockedDomains().then(setBlockedDomains) }, [])
+  useEffect(() => { getEducationBatches().then(setEducationBatches) }, [])
   const [type, setType] = useState('file')
-  const [form, setForm] = useState({ title: '', description: '', category: '회계/재무', tags: [], externalUrl: '', embedMode: 'newtab' })
+  const [form, setForm] = useState({ title: '', description: '', category: '회계/재무', tags: [], educationBatch: '', externalUrl: '', embedMode: 'newtab' })
   const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [sourceFile, setSourceFile] = useState(null)
@@ -191,6 +193,7 @@ export default function Register() {
         description: form.description.trim(),
         category: form.category,
         tags: form.tags,
+        educationBatch: form.educationBatch || null,
         type,
         externalUrl: normalizeUrl(form.externalUrl.trim()),
         embedMode: form.embedMode,
@@ -322,6 +325,13 @@ export default function Register() {
                       })}
                     </div>
                   </div>
+                </div>
+                <div>
+                  <label className="block font-label text-sm text-primary mb-2">교육 차수</label>
+                  <select value={form.educationBatch} onChange={e => update('educationBatch', e.target.value)} className="w-full bg-surface-container-low border-0 border-b-2 border-outline focus:border-primary p-3 font-body text-sm outline-none">
+                    <option value="">선택 안 함</option>
+                    {educationBatches.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
                 </div>
                 {type === 'link' && (
                   <div>
