@@ -30,7 +30,12 @@ export default function AppCard({ app, onAuthRequired }) {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"
           />
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            {app.educationBatch && (
+              <span className="bg-secondary/80 backdrop-blur-md text-on-secondary font-label text-xs px-3 py-1 rounded-full">
+                {app.educationBatch}
+              </span>
+            )}
             <span className={`${app.type === 'file' ? 'bg-deep-navy/80' : 'bg-primary/80'} backdrop-blur-md text-on-primary font-label text-xs px-3 py-1 rounded-full uppercase`}>
               {app.type === 'file' ? 'HTML' : 'EXTERNAL'}
             </span>

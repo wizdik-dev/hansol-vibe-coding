@@ -182,6 +182,13 @@ export default function Admin() {
     setDefaultBatch(next)
   }
 
+  async function handleBulkSetBatch(batchName) {
+    if (!window.confirm(`교육 차수가 없는 모든 과제를 '${batchName}'으로 일괄 설정하시겠습니까?`)) return
+    const targets = allApps.filter(a => !a.educationBatch)
+    await Promise.all(targets.map(a => updateApp(a.id, { educationBatch: batchName })))
+    window.alert(`${targets.length}개 과제에 '${batchName}'이(가) 적용되었습니다.`)
+  }
+
   useEffect(() => {
     if (!isAdmin) navigate('/')
   }, [isAdmin])
@@ -525,6 +532,19 @@ export default function Admin() {
                 <div className="bg-surface-white border border-outline-variant rounded-xl p-6">
                   <h3 className="font-headline text-lg font-bold text-deep-navy mb-2">교육 차수 관리</h3>
                   <p className="font-body text-sm text-text-secondary mb-5">앱 등록 시 선택할 교육 차수 목록을 관리합니다.</p>
+                  {educationBatches.length > 0 && (
+                    <div className="mb-6 p-4 bg-surface-container-low rounded-lg">
+                      <p className="font-label text-xs text-text-secondary mb-3">교육 차수 미설정 과제 일괄 적용</p>
+                      <div className="flex flex-wrap gap-2">
+                        {educationBatches.map(b => (
+                          <button key={b} onClick={() => handleBulkSetBatch(b)}
+                            className="px-4 py-1.5 border border-outline-variant rounded-full font-label text-xs text-text-secondary hover:border-primary hover:text-primary transition-colors">
+                            {b} 으로 일괄 적용
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex gap-3 mb-6">
                     <input
                       value={newBatch}
