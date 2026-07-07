@@ -48,17 +48,22 @@ export default function Register() {
     if (!url) return
     setCapturingThumb(true)
     setThumbnailPreview('')
+    const isStreamlit = /streamlit\.app|streamlit\.io/i.test(url)
     try {
-      const isStreamlit = /streamlit\.app|streamlit\.io/i.test(url)
       const params = new URLSearchParams({ url, screenshot: 'true', meta: 'false' })
       if (isStreamlit) params.set('waitFor', '5000')
       const res = await fetch(`https://api.microlink.io/?${params.toString()}`)
       if (!res.ok) throw new Error('API 오류')
       const json = await res.json()
       const imgUrl = json?.data?.screenshot?.url
-      if (imgUrl) setThumbnailPreview(imgUrl)
+      if (imgUrl) {
+        setThumbnailPreview(imgUrl)
+      } else if (isStreamlit) {
+        setThumbnailPreview('/streamlit-default.svg')
+      }
     } catch (err) {
       console.warn('URL 썸네일 캡처 실패:', err)
+      if (isStreamlit) setThumbnailPreview('/streamlit-default.svg')
     } finally {
       setCapturingThumb(false)
     }
