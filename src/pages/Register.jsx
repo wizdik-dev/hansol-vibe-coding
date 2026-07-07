@@ -5,7 +5,7 @@ import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault } fr
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
-const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
+const TAG_OPTIONS = ['Vercel', 'Streamlit', 'HTML', '기타']
 
 function normalizeUrl(url) {
   if (!url) return url
