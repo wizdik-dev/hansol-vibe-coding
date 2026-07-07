@@ -126,7 +126,7 @@ export default function Gallery() {
               {batchList.length > 0 && (
                 <button
                   onClick={() => setBatch('전체')}
-                  className={`px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-colors ${batch === '전체' ? 'bg-surface-container-high text-on-surface' : 'bg-surface-container text-text-secondary hover:bg-surface-container-high'}`}
+                  className={`px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-colors ${batch === '전체' ? 'bg-primary text-on-primary' : 'bg-surface-container text-text-secondary hover:bg-surface-container-high'}`}
                 >
                   전체
                 </button>
