@@ -49,21 +49,20 @@ export default function Register() {
     setCapturingThumb(true)
     setThumbnailPreview('')
     const isStreamlit = /streamlit\.app|streamlit\.io/i.test(url)
+    if (isStreamlit) {
+      setThumbnailPreview('/streamlit-default.svg')
+      setCapturingThumb(false)
+      return
+    }
     try {
       const params = new URLSearchParams({ url, screenshot: 'true', meta: 'false' })
-      if (isStreamlit) params.set('waitFor', '5000')
       const res = await fetch(`https://api.microlink.io/?${params.toString()}`)
       if (!res.ok) throw new Error('API 오류')
       const json = await res.json()
       const imgUrl = json?.data?.screenshot?.url
-      if (imgUrl) {
-        setThumbnailPreview(imgUrl)
-      } else if (isStreamlit) {
-        setThumbnailPreview('/streamlit-default.svg')
-      }
+      if (imgUrl) setThumbnailPreview(imgUrl)
     } catch (err) {
       console.warn('URL 썸네일 캡처 실패:', err)
-      if (isStreamlit) setThumbnailPreview('/streamlit-default.svg')
     } finally {
       setCapturingThumb(false)
     }
@@ -415,8 +414,12 @@ export default function Register() {
                         )}
                         {type === 'link' && (
                           <div className="mt-3 flex items-center justify-center gap-1.5">
-                            <span className="material-symbols-outlined text-[14px] text-success">screenshot_monitor</span>
-                            <span className="font-label text-xs text-success">외부 사이트 자동 캡처됨</span>
+                            <span className="material-symbols-outlined text-[14px] text-success">
+                              {thumbnailPreview === '/streamlit-default.svg' ? 'image' : 'screenshot_monitor'}
+                            </span>
+                            <span className="font-label text-xs text-success">
+                              {thumbnailPreview === '/streamlit-default.svg' ? 'Streamlit 기본 이미지 적용 (직접 업로드로 변경 가능)' : '외부 사이트 자동 캡처됨'}
+                            </span>
                           </div>
                         )}
                       </div>
