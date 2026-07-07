@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useData } from '../DataContext'
+import { adminSendPasswordReset } from '../store'
 
 export default function Login() {
   const { login, signup } = useData()
   const navigate = useNavigate()
 
-  const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [mode, setMode] = useState('login') // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -15,11 +16,27 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+
+  async function handleResetPassword(e) {
+    e.preventDefault()
+    if (!email.trim()) { setError('이메일을 입력해주세요.'); return }
+    setLoading(true)
+    setError('')
+    try {
+      await adminSendPasswordReset(email.trim())
+      setResetSent(true)
+    } catch {
+      setError('이메일 발송에 실패했습니다. 가입된 이메일인지 확인해주세요.')
+    }
+    setLoading(false)
+  }
 
   function switchMode(m) {
     setMode(m)
     setError('')
     setConfirmPassword('')
+    setResetSent(false)
   }
 
   async function handleSubmit(e) {
@@ -65,7 +82,52 @@ export default function Login() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-5">
+          {/* 비밀번호 찾기 화면 */}
+          {mode === 'reset' && (
+            <div className="p-8 space-y-5">
+              {resetSent ? (
+                <div className="text-center space-y-4">
+                  <span className="material-symbols-outlined text-5xl text-primary">mark_email_read</span>
+                  <p className="font-headline text-lg font-bold text-deep-navy">이메일을 확인해주세요</p>
+                  <p className="font-body text-sm text-text-secondary">{email}로 비밀번호 재설정 링크를 발송했습니다.</p>
+                  <button type="button" onClick={() => switchMode('login')} className="font-label text-sm text-primary hover:underline">
+                    로그인으로 돌아가기
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleResetPassword} className="space-y-5">
+                  <p className="font-body text-sm text-text-secondary">가입하신 이메일을 입력하시면 비밀번호 재설정 링크를 보내드립니다.</p>
+                  <div>
+                    <label className="block font-label text-sm text-primary mb-2">이메일</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="name@hansol.com"
+                      className="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary p-3 font-body text-sm outline-none transition-all rounded-t-lg"
+                      required
+                    />
+                  </div>
+                  {error && (
+                    <div className="bg-error-container text-on-error-container font-label text-sm p-3 rounded-lg flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">error</span>
+                      {error}
+                    </div>
+                  )}
+                  <button type="submit" disabled={loading}
+                    className="w-full bg-primary text-on-primary font-label text-sm font-bold py-3 rounded-lg hover:bg-primary-container transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                    {loading && <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />}
+                    재설정 이메일 발송
+                  </button>
+                  <button type="button" onClick={() => switchMode('login')} className="w-full font-label text-sm text-text-secondary hover:text-primary transition-colors">
+                    ← 로그인으로 돌아가기
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className={`p-8 space-y-5 ${mode === 'reset' ? 'hidden' : ''}`}>
             {/* 이메일 */}
             <div>
               <label className="block font-label text-sm text-primary mb-2">이메일</label>
@@ -130,6 +192,15 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {/* 비밀번호 찾기 링크 — 로그인만 */}
+            {mode === 'login' && (
+              <div className="text-right -mt-2">
+                <button type="button" onClick={() => switchMode('reset')} className="font-label text-xs text-text-secondary hover:text-primary transition-colors">
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
+            )}
 
             {/* 비밀번호 확인 — 신규 가입만 */}
             {mode === 'signup' && (
