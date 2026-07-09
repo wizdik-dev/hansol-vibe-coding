@@ -494,7 +494,7 @@ export default function Register() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="font-label text-sm text-primary">
-                      첨부파일 <span className="text-text-secondary font-normal">(선택 · Excel, PDF, PPT, Word, CSV 등 · 최대 20MB)</span>
+                      첨부파일 <span className="text-text-secondary font-normal">(선택 · Excel, PDF, PPT, Word, CSV 등 · 최대 60MB)</span>
                     </label>
                     <label className="cursor-pointer flex items-center gap-1.5 font-label text-xs text-primary hover:underline">
                       <span className="material-symbols-outlined text-[16px]">attach_file</span>파일 추가
@@ -527,7 +527,7 @@ export default function Register() {
                         <p className="font-body text-sm text-text-secondary">
                           {isDraggingAttachment ? '여기에 놓으세요' : '파일을 클릭하거나 드래그하여 첨부하세요'}
                         </p>
-                        <p className="font-label text-xs text-outline mt-1">Excel, PDF, PPT, Word, CSV, 이미지 (최대 20MB)</p>
+                        <p className="font-label text-xs text-outline mt-1">Excel, PDF, PPT, Word, CSV, 이미지 (최대 60MB)</p>
                         <input type="file" multiple accept=".xlsx,.xls,.csv,.pdf,.pptx,.ppt,.docx,.doc,.txt,.md,.zip,.png,.jpg,.jpeg" onChange={handleAttachmentFiles} className="sr-only" />
                       </label>
                     ) : (

@@ -446,7 +446,7 @@ export function validateFile(file) {
 
 // ── Attachments (Firebase Storage) ────────────────────────────────────────────
 const ATTACHMENT_ALLOWED = ['.xlsx', '.xls', '.csv', '.pdf', '.pptx', '.ppt', '.docx', '.doc', '.txt', '.md', '.zip', '.png', '.jpg', '.jpeg']
-const ATTACHMENT_MAX_MB = 20
+const ATTACHMENT_MAX_MB = 60
 
 export function validateAttachment(file) {
   const ext = '.' + file.name.split('.').pop().toLowerCase()
