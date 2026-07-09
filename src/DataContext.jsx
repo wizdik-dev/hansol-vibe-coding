@@ -49,14 +49,15 @@ export function DataProvider({ children }) {
     })
   }, [])
 
-  // Apps real-time subscription
+  // Apps real-time subscription (로그인한 사용자만)
   useEffect(() => {
+    if (!user?.id) { setApps([]); return }
     return onSnapshot(
       query(collection(db, 'apps'), orderBy('createdAt', 'desc')),
       snap => setApps(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
       err => console.error('apps snapshot error:', err)
     )
-  }, [])
+  }, [user?.id])
 
   // User-specific subscriptions (likes, bookmarks, notifications)
   useEffect(() => {

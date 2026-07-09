@@ -188,7 +188,18 @@ export default function Gallery() {
             "<span className="text-primary font-bold">{q}</span>" 검색 결과 — {apps.length}개
           </p>
         )}
-        {apps.length === 0 ? (
+        {!user ? (
+          <div className="text-center py-24">
+            <span className="material-symbols-outlined text-6xl text-outline-variant">lock</span>
+            <p className="font-headline text-xl text-text-secondary mt-4">로그인 후 이용 가능합니다</p>
+            <p className="font-body text-sm text-outline mt-2">임직원 로그인 후 등록된 과제를 둘러보세요.</p>
+            <Link to="/login">
+              <button className="mt-6 bg-primary text-on-primary px-8 py-3 font-label text-sm font-bold rounded-lg hover:bg-primary-container transition-all">
+                로그인하기
+              </button>
+            </Link>
+          </div>
+        ) : apps.length === 0 ? (
           <div className="text-center py-24">
             <span className="material-symbols-outlined text-6xl text-outline-variant">search_off</span>
             <p className="font-headline text-xl text-text-secondary mt-4">검색 결과가 없습니다</p>
