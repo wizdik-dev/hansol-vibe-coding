@@ -109,7 +109,7 @@ export default function Gallery() {
       </section>
 
       {/* Filter bar */}
-      <section className="bg-surface-white border-y border-outline-variant sticky top-16 md:top-20 z-40">
+      <section className="bg-surface-white border-y border-outline-variant sticky top-16 z-40">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
