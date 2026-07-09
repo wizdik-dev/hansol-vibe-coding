@@ -174,7 +174,7 @@ export default function Admin() {
   const { user, isAdmin, apps: allApps, deleteApp, updateApp,
     getReports, resolveReport, getNotices, addNotice, deleteNotice,
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
-    getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole, adminUpdateUser,
+    getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole, adminUpdateUserDepartment,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
     getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches } = useData()
 
@@ -306,7 +306,7 @@ export default function Admin() {
     refresh()
   }
   async function handleSaveDept(uid) {
-    await adminUpdateUser(uid, { department: editingDeptVal.trim() })
+    await adminUpdateUserDepartment(uid, editingDeptVal.trim())
     setEditingDeptUid(null)
     refresh()
   }

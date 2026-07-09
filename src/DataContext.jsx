@@ -11,7 +11,7 @@ import {
   getNotices, addNotice, deleteNotice,
   getReports, addReport, resolveReport,
   getBlockedDomains, addBlockedDomain, removeBlockedDomain, isDomainBlocked,
-  getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole,
+  getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole, adminUpdateUserDepartment,
   computeRankings, computeMyStats, computeAdminStats,
   validateFile, validateAttachment, uploadAttachment, deleteAttachment, updateAppAttachments,
   uploadHtmlFile,
@@ -215,6 +215,7 @@ export function DataProvider({ children }) {
     adminSendPasswordReset,
     adminSetRole,
     adminUpdateUser: updateUserProfile,
+    adminUpdateUserDepartment,
 
     getRankings,
     getMyStats,

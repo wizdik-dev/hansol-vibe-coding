@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  query, orderBy, increment, arrayUnion, arrayRemove,
+  query, orderBy, where, increment, arrayUnion, arrayRemove,
   serverTimestamp, writeBatch, Timestamp,
 } from 'firebase/firestore'
 import {
@@ -270,6 +270,15 @@ export async function adminDeleteUser(uid) {
 
 export async function adminSetRole(uid, role) {
   await updateDoc(doc(db, 'users', uid), { role })
+}
+
+export async function adminUpdateUserDepartment(uid, department) {
+  await updateDoc(doc(db, 'users', uid), { department })
+  const snap = await getDocs(query(collection(db, 'apps'), where('userId', '==', uid)))
+  if (snap.empty) return
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => batch.update(d.ref, { department }))
+  await batch.commit()
 }
 
 export async function adminSendPasswordReset(email) {
