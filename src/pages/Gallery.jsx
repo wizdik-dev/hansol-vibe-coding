@@ -58,6 +58,9 @@ export default function Gallery() {
   // 필터/정렬 변경 시 visibleCount 리셋
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [q, category, type, batch, sort])
 
+  const visibleApps = apps.slice(0, visibleCount)
+  const hasMore = visibleCount < apps.length
+
   // IntersectionObserver로 무한 스크롤
   useEffect(() => {
     const el = loaderRef.current
@@ -69,10 +72,7 @@ export default function Gallery() {
     }, { threshold: 0.1 })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [apps])
-
-  const visibleApps = apps.slice(0, visibleCount)
-  const hasMore = visibleCount < apps.length
+  }, [apps, hasMore])
 
   return (
     <>
