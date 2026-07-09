@@ -53,7 +53,7 @@ export default function Gallery() {
     if (sort === 'newest') list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     if (sort === 'popular') list = [...list].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     return list
-  }, [q, category, type, batch, sort])
+  }, [allApps, q, category, type, batch, sort])
 
   // 필터/정렬 변경 시 visibleCount 리셋
   useEffect(() => { setVisibleCount(PAGE_SIZE) }, [q, category, type, batch, sort])
