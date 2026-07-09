@@ -174,7 +174,7 @@ export default function Admin() {
   const { user, isAdmin, apps: allApps, deleteApp, updateApp,
     getReports, resolveReport, getNotices, addNotice, deleteNotice,
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
-    getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole,
+    getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole, adminUpdateUser,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
     getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches } = useData()
 
@@ -196,6 +196,8 @@ export default function Admin() {
   const [editingBatchIdx, setEditingBatchIdx] = useState(null)
   const [editingBatchVal, setEditingBatchVal] = useState('')
   const [editingBatchColor, setEditingBatchColor] = useState('')
+  const [editingDeptUid, setEditingDeptUid] = useState(null)
+  const [editingDeptVal, setEditingDeptVal] = useState('')
 
   async function handleEditSave(form) {
     await updateApp(editingApp.id, form)
@@ -303,6 +305,12 @@ export default function Admin() {
     await adminSetRole(u.id, newRole)
     refresh()
   }
+  async function handleSaveDept(uid) {
+    await adminUpdateUser(uid, { department: editingDeptVal.trim() })
+    setEditingDeptUid(null)
+    refresh()
+  }
+
   async function handlePasswordReset(email) {
     await adminSendPasswordReset(email)
     setPwResetMsg(`${email} 로 비밀번호 재설정 이메일을 발송했습니다.`)
@@ -498,7 +506,29 @@ export default function Admin() {
                             </div>
                           </td>
                           <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{u.email}</span></td>
-                          <td className="px-4 py-3 hidden md:table-cell"><span className="font-label text-xs text-text-secondary">{u.department || '—'}</span></td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            {editingDeptUid === u.id ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  autoFocus
+                                  value={editingDeptVal}
+                                  onChange={e => setEditingDeptVal(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') handleSaveDept(u.id); if (e.key === 'Escape') setEditingDeptUid(null) }}
+                                  onBlur={() => handleSaveDept(u.id)}
+                                  className="w-28 border border-primary rounded px-2 py-0.5 font-label text-xs outline-none"
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setEditingDeptUid(u.id); setEditingDeptVal(u.department || '') }}
+                                className="flex items-center gap-1 group text-left"
+                                title="클릭하여 수정"
+                              >
+                                <span className="font-label text-xs text-text-secondary">{u.department || '—'}</span>
+                                <span className="material-symbols-outlined text-[13px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">edit</span>
+                              </button>
+                            )}
+                          </td>
                           <td className="px-4 py-3 hidden md:table-cell">
                             <span className={`font-label text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
                               {u.role === 'admin' ? '관리자' : '일반'}

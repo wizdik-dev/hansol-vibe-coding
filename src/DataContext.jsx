@@ -214,6 +214,7 @@ export function DataProvider({ children }) {
     adminDeleteUser,
     adminSendPasswordReset,
     adminSetRole,
+    adminUpdateUser: updateUserProfile,
 
     getRankings,
     getMyStats,
