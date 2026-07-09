@@ -260,7 +260,7 @@ export default function Register() {
                 <h3 className="font-headline text-xl font-semibold text-deep-navy">프로젝트의 배포 방식을 선택해 주세요.</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { value: 'file', icon: 'html', title: 'HTML 업로드', desc: '정적 웹사이트를 ZIP 또는 단일 HTML로 업로드합니다. (.html .css .js .zip / 최대 50MB)' },
+                    { value: 'file', icon: 'html', title: 'HTML 업로드', desc: '단일 HTML 파일로 업로드합니다.' },
                     { value: 'link', icon: 'link', title: '외부 링크 연결', desc: 'Streamlit, Vercel 등 배포된 라이브 URL을 등록합니다.' },
                   ].map(opt => (
                     <label key={opt.value} className={`flex flex-col items-center p-8 border-2 cursor-pointer rounded-xl transition-all ${type === opt.value ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary bg-surface-container-low'}`}>
@@ -482,7 +482,7 @@ export default function Register() {
                           <p className="font-body text-sm text-text-secondary">
                             {isDraggingOver ? '여기에 놓으세요' : '클릭하거나 파일을 드래그하여 업로드'}
                           </p>
-                          <p className="font-label text-xs text-outline-variant mt-1">ZIP, HTML, JS · ZIP 최대 50MB / 단일 파일 최대 10MB</p>
+                          <p className="font-label text-xs text-outline-variant mt-1">단일 HTML 파일 (최대 10MB)</p>
                         </div>
                       )}
                       <input id="sourceFileInput" type="file" accept=".html,.zip,.js,.css" onChange={handleSourceFile} className="sr-only" />
