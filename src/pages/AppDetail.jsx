@@ -303,7 +303,7 @@ export default function AppDetail() {
 
           {/* Sidebar */}
           <aside className="lg:col-span-4 flex flex-col gap-5">
-            <div className="bg-surface-white p-6 rounded-xl border border-outline-variant shadow-sm sticky top-24">
+            <div className="bg-surface-white p-6 rounded-xl border border-outline-variant shadow-sm">
               <h4 className="font-label text-xs text-primary uppercase tracking-widest mb-5">Project Metadata</h4>
               <div className="space-y-4">
                 <div>
