@@ -1,7 +1,7 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, where, increment, arrayUnion, arrayRemove,
-  serverTimestamp, writeBatch, Timestamp,
+  serverTimestamp, writeBatch, Timestamp, runTransaction,
 } from 'firebase/firestore'
 import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -9,7 +9,7 @@ import {
   fetchSignInMethodsForEmail, sendPasswordResetEmail,
 } from 'firebase/auth'
 import { auth, db, storage } from './firebase'
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject, listAll } from 'firebase/storage'
 
 // ── Seed data ────────────────────────────────────────────────────────────────
 const SEED_APPS = [
@@ -96,7 +96,7 @@ export async function login(email, password) {
         email: emailTrimmed,
         name: emailTrimmed.split('@')[0],
         department: '', position: '', bio: '', avatar: '',
-        role: emailTrimmed.startsWith('admin@') ? 'admin' : 'user',
+        role: 'user',
         createdAt: serverTimestamp(),
       })
     }
@@ -120,7 +120,7 @@ export async function signup(email, password, profile = {}) {
       email: emailTrimmed,
       name: profile.name || emailTrimmed.split('@')[0],
       department: profile.department || '', position: '', bio: '', avatar: '',
-      role: emailTrimmed.startsWith('admin@') ? 'admin' : 'user',
+      role: 'user',
       createdAt: serverTimestamp(),
     })
     return { ok: true }
@@ -173,6 +173,20 @@ export async function updateApp(id, data) {
 }
 
 export async function deleteApp(id) {
+  // 댓글 서브컬렉션 삭제
+  const comments = await getDocs(collection(db, 'apps', id, 'comments'))
+  if (!comments.empty) {
+    const batch = writeBatch(db)
+    comments.docs.forEach(d => batch.delete(d.ref))
+    await batch.commit()
+  }
+  // Storage 파일 삭제 (HTML 파일 + 첨부파일, 실패해도 앱 삭제는 진행)
+  for (const folder of [`htmlfiles/${id}`, `attachments/${id}`]) {
+    try {
+      const res = await listAll(ref(storage, folder))
+      await Promise.all(res.items.map(item => deleteObject(item).catch(() => {})))
+    } catch (_) {}
+  }
   await deleteDoc(doc(db, 'apps', id))
 }
 
@@ -181,18 +195,24 @@ export async function incrementView(id) {
 }
 
 // ── Likes ─────────────────────────────────────────────────────────────────────
-export async function toggleLike(appId, userId, currentlyLiked) {
+export async function toggleLike(appId, userId) {
   const userLikesRef = doc(db, 'userLikes', userId)
   const appRef = doc(db, 'apps', appId)
-  if (currentlyLiked) {
-    await setDoc(userLikesRef, { appIds: arrayRemove(appId) }, { merge: true })
-    await updateDoc(appRef, { likeCount: increment(-1) })
-    return false
-  } else {
-    await setDoc(userLikesRef, { appIds: arrayUnion(appId) }, { merge: true })
-    await updateDoc(appRef, { likeCount: increment(1) })
-    return true
-  }
+  return runTransaction(db, async tx => {
+    const [likesDoc, appDoc] = await Promise.all([tx.get(userLikesRef), tx.get(appRef)])
+    const appIds = likesDoc.data()?.appIds || []
+    const currentCount = appDoc.data()?.likeCount || 0
+    const liked = appIds.includes(appId)
+    if (liked) {
+      tx.set(userLikesRef, { appIds: arrayRemove(appId) }, { merge: true })
+      tx.update(appRef, { likeCount: Math.max(0, currentCount - 1) })
+      return false
+    } else {
+      tx.set(userLikesRef, { appIds: arrayUnion(appId) }, { merge: true })
+      tx.update(appRef, { likeCount: currentCount + 1 })
+      return true
+    }
+  })
 }
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────────
@@ -363,6 +383,15 @@ export async function removeEducationBatch(name) {
   await saveEducationBatches(batches.filter(b => b.name !== name))
 }
 
+// 차수 이름 변경/삭제 시 기존 앱들의 educationBatch 필드를 일괄 갱신
+export async function updateAppsEducationBatch(oldName, newName) {
+  const snap = await getDocs(query(collection(db, 'apps'), where('educationBatch', '==', oldName)))
+  if (snap.empty) return
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => batch.update(d.ref, { educationBatch: newName }))
+  await batch.commit()
+}
+
 export async function reorderEducationBatches(batches) {
   await saveEducationBatches(batches)
 }
@@ -404,10 +433,6 @@ export function computeMyStats(apps, userId) {
     totalApps: myApps.length,
     totalViews: myApps.reduce((s, a) => s + (a.viewCount || 0), 0),
     totalLikes: myApps.reduce((s, a) => s + (a.likeCount || 0), 0),
-    history: Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (13 - i))
-      return { date: d.toISOString().slice(5, 10), views: 0, likes: 0 }
-    }),
     apps: myApps,
   }
 }
@@ -426,10 +451,6 @@ export function computeAdminStats(apps, reports) {
     categories: Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
     tags: Object.entries(tagMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, value]) => ({ name, value })),
     departments: Object.entries(deptMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
-    monthlyTrend: Array.from({ length: 30 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (29 - i))
-      return { date: d.toISOString().slice(5, 10), views: 0 }
-    }),
   }
 }
 

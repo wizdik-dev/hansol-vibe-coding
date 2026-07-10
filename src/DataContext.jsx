@@ -17,6 +17,7 @@ import {
   uploadHtmlFile,
   getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
   getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches,
+  updateAppsEducationBatch,
 } from './store'
 
 const DataContext = createContext(null)
@@ -29,8 +30,10 @@ export function DataProvider({ children }) {
   const [userBookmarks, setUserBookmarks] = useState(new Set())
   const [notifications, setNotifications] = useState([])
 
-  // Seed data on first load
-  useEffect(() => { seedIfNeeded().catch(console.error) }, [])
+  // Seed data — 로그인한 사용자가 있을 때만 시도
+  useEffect(() => {
+    if (user?.id) seedIfNeeded().catch(console.error)
+  }, [user?.id])
 
   // Firebase Auth state
   useEffect(() => {
@@ -112,8 +115,7 @@ export function DataProvider({ children }) {
   // ── Social actions ────────────────────────────────────────────────────────
   async function handleToggleLike(appId) {
     if (!user) return false
-    const currentlyLiked = userLikes.has(appId)
-    const newLiked = await toggleLike(appId, user.id, currentlyLiked)
+    const newLiked = await toggleLike(appId, user.id)
     if (newLiked) {
       const app = apps.find(a => a.id === appId)
       if (app && app.userId && app.userId !== user.id && app.userId !== 'seed') {
@@ -226,6 +228,7 @@ export function DataProvider({ children }) {
     uploadHtmlFile,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
     getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches,
+    updateAppsEducationBatch,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

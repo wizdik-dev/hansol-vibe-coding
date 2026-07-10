@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 import { validateAttachment, uploadHtmlFile } from '../store'
 
@@ -13,7 +13,7 @@ function normalizeUrl(url) {
 }
 
 function EditModal({ app, onClose, onSave }) {
-  const { uploadAttachment, deleteAttachment, updateAppAttachments } = useData()
+  const { uploadAttachment, deleteAttachment } = useData()
   const [form, setForm] = useState({
     title: app.title || '',
     description: app.description || '',
@@ -23,6 +23,7 @@ function EditModal({ app, onClose, onSave }) {
   })
   const [saving, setSaving] = useState(false)
   const [existingAttachments, setExistingAttachments] = useState(app.attachments || [])
+  const [removedAttachments, setRemovedAttachments] = useState([])
   const [newAttachments, setNewAttachments] = useState([])
   const [uploadProgress, setUploadProgress] = useState({})
   const [isDragging, setIsDragging] = useState(false)
@@ -53,33 +54,39 @@ function EditModal({ app, onClose, onSave }) {
     e.target.value = ''
   }
 
-  async function handleRemoveExisting(att) {
-    await deleteAttachment(att.path)
-    const updated = existingAttachments.filter(a => a.path !== att.path)
-    setExistingAttachments(updated)
-    await updateAppAttachments(app.id, updated)
+  // 저장 시점에 실제 삭제 — 취소하면 파일 유지
+  function handleRemoveExisting(att) {
+    setExistingAttachments(prev => prev.filter(a => a.path !== att.path))
+    setRemovedAttachments(prev => [...prev, att])
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.title.trim() || !form.description.trim()) return
     setSaving(true)
-    const validNew = newAttachments.filter(a => !a.error)
-    const uploaded = []
-    for (const a of validNew) {
-      const info = await uploadAttachment(app.id, a.file, pct =>
-        setUploadProgress(p => ({ ...p, [a.name]: pct }))
-      )
-      uploaded.push(info)
+    try {
+      const validNew = newAttachments.filter(a => !a.error)
+      const uploaded = []
+      for (const a of validNew) {
+        const info = await uploadAttachment(app.id, a.file, pct =>
+          setUploadProgress(p => ({ ...p, [a.name]: pct }))
+        )
+        uploaded.push(info)
+      }
+      let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl), attachments: [...existingAttachments, ...uploaded] }
+      if (app.type === 'file' && newHtmlFile) {
+        const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
+        saveData.fileUrl = result.url
+      }
+      await onSave(saveData)
+      for (const att of removedAttachments) await deleteAttachment(att.path)
+      onClose()
+    } catch (err) {
+      console.error('앱 수정 실패:', err)
+      window.alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.')
+    } finally {
+      setSaving(false)
     }
-    let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl), attachments: [...existingAttachments, ...uploaded] }
-    if (app.type === 'file' && newHtmlFile) {
-      const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
-      saveData.fileUrl = result.url
-    }
-    await onSave(saveData)
-    setSaving(false)
-    onClose()
   }
 
   return (
@@ -267,7 +274,6 @@ function EditModal({ app, onClose, onSave }) {
 }
 
 export default function MyApps({ mode = 'apps' }) {
-  const navigate = useNavigate()
   const { user, apps: allApps, userBookmarks, updateApp, deleteApp } = useData()
   const [editingApp, setEditingApp] = useState(null)
 
@@ -277,7 +283,7 @@ export default function MyApps({ mode = 'apps' }) {
     return allApps.filter(a => userBookmarks.has(a.id))
   }, [mode, user, allApps, userBookmarks])
 
-  if (!user) { navigate('/login'); return null }
+  if (!user) return <Navigate to="/login" replace />
 
   async function handleSave(form) {
     await updateApp(editingApp.id, form)

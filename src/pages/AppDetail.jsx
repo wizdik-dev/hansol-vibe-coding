@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 
 function timeAgo(val) {
@@ -48,6 +48,7 @@ export default function AppDetail() {
     return () => { cancelled = true; clearTimeout(timer) }
   }, [id])
 
+  if (!user) return <Navigate to="/login" replace />
   if (!app) return null
 
   const relatedApps = apps.filter(a => a.id !== id && a.status !== 'rejected' && a.tags?.some(t => app.tags?.includes(t))).slice(0, 3)

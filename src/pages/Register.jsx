@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault } from '../store'
 import html2canvas from 'html2canvas'
@@ -15,7 +15,7 @@ function normalizeUrl(url) {
 
 export default function Register() {
   const navigate = useNavigate()
-  const { user, addApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments, uploadHtmlFile } = useData()
+  const { user, addApp, updateApp, validateFile, validateAttachment, uploadAttachment, updateAppAttachments, uploadHtmlFile } = useData()
   const [blockedDomains, setBlockedDomains] = useState([])
   const [educationBatches, setEducationBatches] = useState([])
   const [step, setStep] = useState(1)
@@ -41,8 +41,6 @@ export default function Register() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({})
   const [isDraggingAttachment, setIsDraggingAttachment] = useState(false)
-
-  if (!user) { navigate('/login'); return null }
 
   async function captureUrlThumbnail(url) {
     if (!url) return
@@ -190,46 +188,52 @@ export default function Register() {
 
     async function doSubmit() {
       setUploading(true)
-      // HTML 파일은 Storage에 업로드 후 URL 저장
-      let fileUrl = null
-      if (type === 'file' && sourceFile) {
-        const tempId = `tmp_${Date.now()}`
-        const result = await uploadHtmlFile(tempId, sourceFile)
-        fileUrl = result.url
-      }
-      const newApp = await addApp({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        tags: form.tags,
-        educationBatch: form.educationBatch || null,
-        type,
-        externalUrl: normalizeUrl(form.externalUrl.trim()),
-        embedMode: form.embedMode,
-        fileUrl: fileUrl || null,
-        thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
-        author: user.name || '',
-        department: user.department || '',
-        userId: user.id,
-        attachments: [],
-      })
-      const validFiles = attachments.filter(a => !a.error)
-      if (validFiles.length > 0) {
-        const uploaded = []
-        for (const a of validFiles) {
-          const info = await uploadAttachment(newApp.id, a.file, pct =>
-            setUploadProgress(p => ({ ...p, [a.name]: pct }))
-          )
-          uploaded.push(info)
+      try {
+        const newApp = await addApp({
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category,
+          tags: form.tags,
+          educationBatch: form.educationBatch || null,
+          type,
+          externalUrl: normalizeUrl(form.externalUrl.trim()),
+          embedMode: form.embedMode,
+          fileUrl: null,
+          thumbnail: thumbnailPreview || `https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80`,
+          author: user.name || '',
+          department: user.department || '',
+          userId: user.id,
+          attachments: [],
+        })
+        // HTML 파일은 실제 앱 ID 경로에 업로드 후 URL 연결
+        if (type === 'file' && sourceFile) {
+          const result = await uploadHtmlFile(newApp.id, sourceFile)
+          await updateApp(newApp.id, { fileUrl: result.url })
         }
-        await updateAppAttachments(newApp.id, uploaded)
+        const validFiles = attachments.filter(a => !a.error)
+        if (validFiles.length > 0) {
+          const uploaded = []
+          for (const a of validFiles) {
+            const info = await uploadAttachment(newApp.id, a.file, pct =>
+              setUploadProgress(p => ({ ...p, [a.name]: pct }))
+            )
+            uploaded.push(info)
+          }
+          await updateAppAttachments(newApp.id, uploaded)
+        }
+        navigate(`/apps/${newApp.id}`)
+      } catch (err) {
+        console.error('앱 등록 실패:', err)
+        window.alert('등록 중 오류가 발생했습니다. 네트워크 상태를 확인 후 다시 시도해주세요.')
+      } finally {
+        setUploading(false)
       }
-      setUploading(false)
-      navigate(`/apps/${newApp.id}`)
     }
 
     doSubmit()
   }
+
+  if (!user) return <Navigate to="/login" replace />
 
   return (
     <main className="max-w-[1280px] mx-auto px-4 md:px-12 py-16">
@@ -264,7 +268,15 @@ export default function Register() {
                     { value: 'link', icon: 'link', title: '외부 링크 연결', desc: 'Streamlit, Vercel 등 배포된 라이브 URL을 등록합니다.' },
                   ].map(opt => (
                     <label key={opt.value} className={`flex flex-col items-center p-8 border-2 cursor-pointer rounded-xl transition-all ${type === opt.value ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary bg-surface-container-low'}`}>
-                      <input type="radio" name="type" value={opt.value} checked={type === opt.value} onChange={() => setType(opt.value)} className="sr-only" />
+                      <input type="radio" name="type" value={opt.value} checked={type === opt.value} onChange={() => {
+                        if (type !== opt.value) {
+                          setType(opt.value)
+                          setThumbnail(null)
+                          setThumbnailPreview('')
+                          setSourceFile(null)
+                          setFileError('')
+                        }
+                      }} className="sr-only" />
                       <span className="material-symbols-outlined text-4xl text-primary mb-3">{opt.icon}</span>
                       <span className="font-headline text-lg font-semibold mb-2">{opt.title}</span>
                       <span className="text-center font-label text-xs text-text-secondary">{opt.desc}</span>
@@ -655,7 +667,7 @@ export default function Register() {
               {/* Meta info */}
               <div className="px-4 pb-4 pt-1 border-t border-outline-variant/50 flex justify-between items-center">
                 <span className="font-label text-xs text-text-secondary">{type === 'file' ? 'HTML 업로드' : '외부 링크'}</span>
-                <span className={`font-label text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800`}>대기중</span>
+                <span className="font-label text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">등록 즉시 공개</span>
               </div>
             </div>
 

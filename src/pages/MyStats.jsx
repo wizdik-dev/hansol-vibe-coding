@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid,
 } from 'recharts'
 
@@ -20,11 +20,10 @@ function StatCard({ icon, label, value, sub, color = 'text-primary' }) {
 }
 
 export default function MyStats() {
-  const navigate = useNavigate()
   const { user, getMyStats } = useData()
   const stats = useMemo(() => getMyStats(), [getMyStats])
 
-  if (!user) { navigate('/login'); return null }
+  if (!user) return <Navigate to="/login" replace />
   if (!stats) return null
 
   return (
@@ -32,7 +31,7 @@ export default function MyStats() {
       <div className="flex items-center justify-between mb-10">
         <div>
           <h1 className="font-headline text-4xl font-extrabold text-deep-navy">내 통계</h1>
-          <p className="font-body text-sm text-text-secondary mt-2">내 앱의 조회수·좋아요 추이를 확인합니다.</p>
+          <p className="font-body text-sm text-text-secondary mt-2">내 앱의 조회수·좋아요 현황을 확인합니다.</p>
         </div>
         <Link to="/my/apps" className="font-label text-sm text-text-secondary hover:text-primary flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">apps</span>내 앱
@@ -56,26 +55,6 @@ export default function MyStats() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* View trend */}
-          <div className="bg-surface-white border border-outline-variant rounded-xl p-6">
-            <h3 className="font-headline text-lg font-bold text-deep-navy mb-1">최근 14일 조회수 추이</h3>
-            <p className="font-label text-xs text-text-secondary mb-5">앱 상세 페이지 방문 기록 기준</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={stats.history} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
-                <defs>
-                  <linearGradient id="viewGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#005d97" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#005d97" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} tickLine={false} axisLine={false} interval={1} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #c0c7d2' }} />
-                <Area type="monotone" dataKey="views" stroke="#005d97" strokeWidth={2} fill="url(#viewGrad)" dot={{ r: 3, fill: '#005d97' }} activeDot={{ r: 5 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
           {/* App-level stats */}
           <div className="bg-surface-white border border-outline-variant rounded-xl p-6">
             <h3 className="font-headline text-lg font-bold text-deep-navy mb-5">앱별 성과</h3>

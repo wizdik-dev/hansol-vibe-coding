@@ -147,6 +147,8 @@ export default function Navbar() {
             <Link to="/rankings" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">랭킹</Link>
             <Link to="/register" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">등록</Link>
             {user && <Link to="/my/apps" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">내 앱</Link>}
+            {user && <Link to="/my/bookmarks" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">북마크</Link>}
+            {user && <Link to="/my/profile" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">프로필</Link>}
             {user && <Link to="/my/stats" onClick={() => setMenuOpen(false)} className="font-label text-sm text-on-surface py-2">내 통계</Link>}
             {isAdmin && <Link to="/admin" onClick={() => setMenuOpen(false)} className="font-label text-sm text-error font-bold py-2">관리자 대시보드</Link>}
             {user && <button onClick={() => { handleLogout(); setMenuOpen(false) }} className="text-left font-label text-sm text-error py-2">로그아웃</button>}

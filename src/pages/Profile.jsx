@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 
 export default function Profile() {
-  const navigate = useNavigate()
   const { user, apps: allApps, userLikes, updateUser, changePassword } = useData()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: user?.name || '', department: user?.department || '', position: user?.position || '', bio: user?.bio || '' })
@@ -32,7 +31,7 @@ export default function Profile() {
     }
   }
 
-  if (!user) { navigate('/login'); return null }
+  if (!user) return <Navigate to="/login" replace />
 
   async function handleSave(e) {
     e.preventDefault()

@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useData } from '../DataContext'
 import { uploadHtmlFile } from '../store'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from 'recharts'
+import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const COLORS = ['#005d97', '#286292', '#0077bc', '#94c8fe', '#cfe5ff', '#9bcbff']
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -38,14 +35,20 @@ function AppEditModal({ app, onClose, onSave }) {
     e.preventDefault()
     if (!form.title.trim() || !form.description.trim()) return
     setSaving(true)
-    let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl) }
-    if (app.type === 'file' && newHtmlFile) {
-      const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
-      saveData.fileUrl = result.url
+    try {
+      let saveData = { ...form, externalUrl: normalizeUrl(form.externalUrl) }
+      if (app.type === 'file' && newHtmlFile) {
+        const result = await uploadHtmlFile(app.id, newHtmlFile, pct => setHtmlUploadProgress(pct))
+        saveData.fileUrl = result.url
+      }
+      await onSave(saveData)
+      onClose()
+    } catch (err) {
+      console.error('앱 수정 실패:', err)
+      window.alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.')
+    } finally {
+      setSaving(false)
     }
-    await onSave(saveData)
-    setSaving(false)
-    onClose()
   }
 
   return (
@@ -176,7 +179,8 @@ export default function Admin() {
     getAdminStats, getBlockedDomains, addBlockedDomain, removeBlockedDomain,
     getUsers, adminDeleteUser, adminSendPasswordReset, adminSetRole, adminUpdateUserDepartment,
     getEducationBatches, addEducationBatch, removeEducationBatch, reorderEducationBatches,
-    getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches } = useData()
+    getEducationBatchesWithDefault, setDefaultEducationBatch, saveEducationBatches,
+    updateAppsEducationBatch } = useData()
 
   const [section, setSection] = useState('stats')
   const [reports, setReports] = useState([])
@@ -219,8 +223,9 @@ export default function Admin() {
   }
 
   async function handleRemoveBatch(name) {
-    if (!window.confirm(`'${name}'을(를) 삭제하시겠습니까?`)) return
+    if (!window.confirm(`'${name}'을(를) 삭제하시겠습니까?\n해당 차수로 등록된 과제들의 차수 표시도 제거됩니다.`)) return
     await removeEducationBatch(name)
+    await updateAppsEducationBatch(name, null)
     if (defaultBatch === name) await setDefaultEducationBatch('')
     await refreshBatches()
   }
@@ -231,7 +236,10 @@ export default function Admin() {
     const oldName = educationBatches[idx].name
     const updated = educationBatches.map((b, i) => i === idx ? { name: newVal, color: editingBatchColor } : b)
     await saveEducationBatches(updated)
-    if (defaultBatch === oldName && newVal !== oldName) await setDefaultEducationBatch(newVal)
+    if (newVal !== oldName) {
+      await updateAppsEducationBatch(oldName, newVal)
+      if (defaultBatch === oldName) await setDefaultEducationBatch(newVal)
+    }
     setEditingBatchIdx(null)
     await refreshBatches()
   }
@@ -380,19 +388,6 @@ export default function Admin() {
                   <StatCard icon="group" label="가입 유저" value={users.length} />
                   <StatCard icon="visibility" label="총 조회수" value={stats.totalViews} />
                   <StatCard icon="favorite" label="총 좋아요" value={stats.totalLikes} color="text-error" />
-                </div>
-
-                {/* Monthly trend */}
-                <div className="bg-surface-white border border-outline-variant rounded-xl p-6">
-                  <h3 className="font-headline text-lg font-bold text-deep-navy mb-4">최근 30일 조회수 추이</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={stats.monthlyTrend} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} tickLine={false} axisLine={false} interval={4} />
-                      <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #c0c7d2' }} />
-                      <Bar dataKey="views" fill="#005d97" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

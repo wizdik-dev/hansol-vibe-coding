@@ -56,7 +56,7 @@ export default function Rankings() {
           LEADERBOARD
         </div>
         <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-deep-navy mb-3">랭킹 & 큐레이션</h1>
-        <p className="font-body text-base text-text-secondary">좋아요 × 2 + 조회수 × 0.5 점수로 산정됩니다. 매일 자정 갱신.</p>
+        <p className="font-body text-base text-text-secondary">좋아요 × 2 + 조회수 × 0.5 점수로 산정되며, 실시간으로 반영됩니다.</p>
       </div>
 
       {/* Tabs */}
