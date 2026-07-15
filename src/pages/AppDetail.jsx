@@ -150,6 +150,7 @@ export default function AppDetail() {
                 src={app.thumbnail || 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80'}
                 alt={app.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80' }}
               />
               <div className="absolute inset-0 bg-black/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
@@ -378,7 +379,12 @@ export default function AppDetail() {
                   {relatedApps.map(ra => (
                     <Link key={ra.id} to={`/apps/${ra.id}`} className="group flex gap-3 items-center">
                       <div className="w-14 h-14 rounded-lg bg-surface-container-high overflow-hidden flex-shrink-0">
-                        <img src={ra.thumbnail} alt={ra.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        <img
+                          src={ra.thumbnail || 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=200&q=80'}
+                          alt={ra.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                          onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=200&q=80' }}
+                        />
                       </div>
                       <div>
                         <p className="font-label text-sm text-deep-navy font-bold group-hover:text-primary transition-colors">{ra.title}</p>

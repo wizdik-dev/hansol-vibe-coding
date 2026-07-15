@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
+import { handleThumbnailError } from '../utils/thumbnail'
 
 export default function Profile() {
   const { user, apps: allApps, userLikes, updateUser, changePassword } = useData()
@@ -182,7 +183,7 @@ export default function Profile() {
                 {myApps.slice(0, 3).map(app => (
                   <Link key={app.id} to={`/apps/${app.id}`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-container-low transition-colors group">
                     <div className="w-14 h-14 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
-                      <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" />
+                      <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" onError={handleThumbnailError} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-label text-sm font-bold text-deep-navy group-hover:text-primary transition-colors truncate">{app.title}</p>

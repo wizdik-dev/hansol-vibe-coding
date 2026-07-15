@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
 import { validateAttachment, uploadHtmlFile } from '../store'
+import { handleThumbnailError } from '../utils/thumbnail'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
 const TAG_OPTIONS = ['Vercel', 'Streamlit', '기타']
@@ -345,7 +346,7 @@ export default function MyApps({ mode = 'apps' }) {
             {apps.map(app => (
               <div key={app.id} className="bg-surface-white border border-outline-variant rounded-xl p-4 flex items-center gap-4 hover:border-primary/40 transition-all">
                 <Link to={`/apps/${app.id}`} className="w-16 h-16 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
-                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" />
+                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" onError={handleThumbnailError} />
                 </Link>
                 <div className="flex-1 min-w-0">
                   <Link to={`/apps/${app.id}`} className="font-headline text-base font-bold text-deep-navy hover:text-primary transition-colors truncate block">
@@ -393,7 +394,7 @@ export default function MyApps({ mode = 'apps' }) {
             {apps.map(app => (
               <Link key={app.id} to={`/apps/${app.id}`} className="group bg-surface-white border border-outline-variant rounded-xl overflow-hidden hover:border-primary hover:shadow-xl transition-all hover:-translate-y-1">
                 <div className="aspect-video overflow-hidden bg-surface-container">
-                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={handleThumbnailError} />
                 </div>
                 <div className="p-4">
                   <h3 className="font-headline text-base font-bold text-deep-navy group-hover:text-primary transition-colors truncate">{app.title}</h3>

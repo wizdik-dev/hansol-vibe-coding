@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault } from '../store'
+import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault, captureAndUploadThumbnail } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -209,6 +209,16 @@ export default function Register() {
         if (type === 'file' && sourceFile) {
           const result = await uploadHtmlFile(newApp.id, sourceFile)
           await updateApp(newApp.id, { fileUrl: result.url })
+        }
+        // 외부 링크는 미리보기용 microlink URL이 시간이 지나면 만료되므로,
+        // 우리 Storage에 영구 저장한 썸네일로 교체한다 (실패해도 등록 자체는 유지)
+        if (type === 'link' && form.externalUrl.trim()) {
+          try {
+            const hostedThumbnail = await captureAndUploadThumbnail(newApp.id, form.externalUrl.trim())
+            await updateApp(newApp.id, { thumbnail: hostedThumbnail })
+          } catch (err) {
+            console.warn('썸네일 영구 저장 실패, 임시 URL 유지:', err)
+          }
         }
         const validFiles = attachments.filter(a => !a.error)
         if (validFiles.length > 0) {

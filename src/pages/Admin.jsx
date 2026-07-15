@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { uploadHtmlFile } from '../store'
+import { uploadHtmlFile, repairLinkThumbnails } from '../store'
+import { handleThumbnailError } from '../utils/thumbnail'
 import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const COLORS = ['#005d97', '#286292', '#0077bc', '#94c8fe', '#cfe5ff', '#9bcbff']
@@ -202,6 +203,26 @@ export default function Admin() {
   const [editingBatchColor, setEditingBatchColor] = useState('')
   const [editingDeptUid, setEditingDeptUid] = useState(null)
   const [editingDeptVal, setEditingDeptVal] = useState('')
+  const [repairing, setRepairing] = useState(false)
+  const [repairProgress, setRepairProgress] = useState(null)
+  const [repairResult, setRepairResult] = useState(null)
+
+  async function handleRepairThumbnails() {
+    const linkApps = allApps.filter(a => a.type === 'link' && a.externalUrl)
+    if (linkApps.length === 0) { window.alert('외부 링크 타입 앱이 없습니다.'); return }
+    if (!window.confirm(`외부 링크 앱 ${linkApps.length}개의 썸네일을 다시 캡처해 Storage에 영구 저장합니다.\n시간이 다소 걸릴 수 있습니다. 계속할까요?`)) return
+    setRepairing(true)
+    setRepairResult(null)
+    setRepairProgress({ done: 0, total: linkApps.length })
+    try {
+      const results = await repairLinkThumbnails(linkApps, (done, total) => setRepairProgress({ done, total }))
+      const success = results.filter(r => r.ok).length
+      const failed = results.filter(r => !r.ok)
+      setRepairResult({ success, failed })
+    } finally {
+      setRepairing(false)
+    }
+  }
 
   async function handleEditSave(form) {
     await updateApp(editingApp.id, form)
@@ -422,7 +443,35 @@ export default function Admin() {
             {/* ─── 앱 관리 ─── */}
             {section === 'apps' && (
               <div className="space-y-4">
-                <span className="font-label text-xs text-text-secondary">{apps.length}개 등록됨</span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <span className="font-label text-xs text-text-secondary">{apps.length}개 등록됨</span>
+                  <button
+                    onClick={handleRepairThumbnails}
+                    disabled={repairing}
+                    className="flex items-center gap-2 font-label text-xs font-bold px-4 py-2 rounded-lg border border-primary text-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                  >
+                    {repairing && <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
+                    <span className="material-symbols-outlined text-[16px]">image</span>
+                    {repairing ? `썸네일 복구 중... (${repairProgress?.done ?? 0}/${repairProgress?.total ?? 0})` : '외부 링크 썸네일 일괄 복구'}
+                  </button>
+                </div>
+                {repairResult && (
+                  <div className="bg-surface-container-low border border-outline-variant rounded-lg p-4 text-sm">
+                    <p className="font-label text-xs text-on-surface">
+                      복구 완료 — 성공 <span className="text-primary font-bold">{repairResult.success}</span>개
+                      {repairResult.failed.length > 0 && <> · 실패 <span className="text-error font-bold">{repairResult.failed.length}</span>개</>}
+                    </p>
+                    {repairResult.failed.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {repairResult.failed.map(f => (
+                          <li key={f.app.id} className="font-label text-xs text-error">
+                            · {f.app.title}: {f.error}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
                 <div className="bg-surface-white border border-outline-variant rounded-xl overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-surface-container-low border-b border-outline-variant">
@@ -440,7 +489,7 @@ export default function Admin() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded overflow-hidden bg-surface-container flex-shrink-0">
-                                <img src={app.thumbnail} alt="" className="w-full h-full object-cover" />
+                                <img src={app.thumbnail} alt="" className="w-full h-full object-cover" onError={handleThumbnailError} />
                               </div>
                               <Link to={`/apps/${app.id}`} className="font-label text-xs text-deep-navy hover:text-primary truncate max-w-[120px]">{app.title}</Link>
                             </div>

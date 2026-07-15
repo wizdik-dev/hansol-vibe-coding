@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext'
+import { handleThumbnailError } from '../utils/thumbnail'
 
 const MEDAL = ['🥇', '🥈', '🥉', '4', '5']
 
@@ -11,7 +12,7 @@ function RankCard({ app, rank, showScore = false }) {
         <span className="text-2xl">{rank <= 3 ? MEDAL[rank - 1] : <span className="font-headline text-lg font-bold text-outline">{rank}</span>}</span>
       </div>
       <div className="w-16 h-12 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
-        <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" />
+        <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" loading="lazy" onError={handleThumbnailError} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-headline text-sm font-bold text-deep-navy group-hover:text-primary transition-colors truncate">{app.title}</p>
@@ -80,7 +81,7 @@ export default function Rankings() {
           {weekly[0] && (
             <Link to={`/apps/${weekly[0].id}`} className="group lg:col-span-2 relative overflow-hidden rounded-2xl border border-outline-variant hover:border-primary transition-all hover:shadow-2xl">
               <div className="aspect-[21/9] relative overflow-hidden bg-surface-container">
-                <img src={weekly[0].thumbnail} alt={weekly[0].title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90" />
+                <img src={weekly[0].thumbnail} alt={weekly[0].title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90" onError={handleThumbnailError} />
                 <div className="absolute inset-0 bg-gradient-to-t from-deep-navy/90 via-deep-navy/40 to-transparent" />
                 <div className="absolute top-4 left-4">
                   <span className="bg-primary text-on-primary font-label text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-2">
@@ -133,7 +134,7 @@ export default function Rankings() {
             {trending.map((app, i) => (
               <Link key={app.id} to={`/apps/${app.id}`} className="group bg-surface-white border border-outline-variant rounded-xl overflow-hidden hover:border-primary hover:shadow-xl transition-all hover:-translate-y-1">
                 <div className="aspect-video relative overflow-hidden bg-surface-container">
-                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" onError={handleThumbnailError} />
                   <div className="absolute top-3 left-3 bg-primary text-on-primary font-label text-xs px-2.5 py-1 rounded-full font-bold">
                     #{i + 1} 트렌딩
                   </div>
@@ -174,7 +175,7 @@ export default function Rankings() {
                 {best && (
                   <Link to={`/apps/${best.id}`} className="group flex items-center gap-3 p-3 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
-                      <img src={best.thumbnail} alt={best.title} className="w-full h-full object-cover" />
+                      <img src={best.thumbnail} alt={best.title} className="w-full h-full object-cover" onError={handleThumbnailError} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-label text-xs font-bold text-deep-navy group-hover:text-primary truncate">{best.title}</p>

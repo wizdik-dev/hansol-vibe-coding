@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useData } from '../DataContext'
-
+import { DEFAULT_THUMBNAIL, handleThumbnailError } from '../utils/thumbnail'
 
 export default function AppCard({ app, onAuthRequired, batchColorMap = {} }) {
   const { user, userLikes, userBookmarks, toggleLike, toggleBookmark } = useData()
@@ -26,10 +26,11 @@ export default function AppCard({ app, onAuthRequired, batchColorMap = {} }) {
       <Link to={`/apps/${app.id}`}>
         <div className="aspect-video relative overflow-hidden bg-surface-container">
           <img
-            src={app.thumbnail || 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80'}
+            src={app.thumbnail || DEFAULT_THUMBNAIL}
             alt={app.title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"
+            onError={handleThumbnailError}
           />
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
             {app.educationBatch && (

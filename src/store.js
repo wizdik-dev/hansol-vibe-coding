@@ -180,8 +180,8 @@ export async function deleteApp(id) {
     comments.docs.forEach(d => batch.delete(d.ref))
     await batch.commit()
   }
-  // Storage 파일 삭제 (HTML 파일 + 첨부파일, 실패해도 앱 삭제는 진행)
-  for (const folder of [`htmlfiles/${id}`, `attachments/${id}`]) {
+  // Storage 파일 삭제 (HTML 파일 + 첨부파일 + 썸네일, 실패해도 앱 삭제는 진행)
+  for (const folder of [`htmlfiles/${id}`, `attachments/${id}`, `thumbnails/${id}`]) {
     try {
       const res = await listAll(ref(storage, folder))
       await Promise.all(res.items.map(item => deleteObject(item).catch(() => {})))
@@ -463,6 +463,64 @@ export function validateFile(file) {
   const maxSize = ext === '.zip' ? MAX_SIZE.zip : MAX_SIZE.single
   if (file.size > maxSize) return { error: `파일 크기 초과: ${ext === '.zip' ? '50MB' : '10MB'} 이하여야 합니다.` }
   return { ok: true }
+}
+
+// ── Thumbnails (Firebase Storage) ─────────────────────────────────────────────
+// 외부 링크(EXTERNAL) 앱의 썸네일은 microlink.io 스크린샷 API가 반환한 URL을 그대로 쓰면 안 됨.
+// microlink 쪽 CDN이 약 한 달 뒤 이미지를 자동 삭제(flush)해서 403이 나기 때문에,
+// 캡처한 이미지를 반드시 우리 Firebase Storage로 재호스팅해서 영구 URL을 사용한다.
+const STREAMLIT_DEFAULT_THUMBNAIL = '/streamlit-default.svg'
+
+function isStreamlitUrl(url) {
+  return /streamlit\.app|streamlit\.io/i.test(url || '')
+}
+
+export function uploadThumbnail(appId, blob, contentType = 'image/png') {
+  return new Promise((resolve, reject) => {
+    const storageRef = ref(storage, `thumbnails/${appId}/thumbnail_${Date.now()}.png`)
+    const task = uploadBytesResumable(storageRef, blob, { contentType })
+    task.on('state_changed', null, reject, async () => {
+      const url = await getDownloadURL(task.snapshot.ref)
+      resolve(url)
+    })
+  })
+}
+
+// 외부 URL을 microlink로 캡처한 뒤 Firebase Storage에 업로드해 영구 썸네일 URL을 반환한다.
+// Streamlit 링크는 캡처 시도 없이 기본 썸네일을 바로 반환한다.
+export async function captureAndUploadThumbnail(appId, externalUrl) {
+  if (isStreamlitUrl(externalUrl)) return STREAMLIT_DEFAULT_THUMBNAIL
+
+  const params = new URLSearchParams({ url: externalUrl, screenshot: 'true', meta: 'false' })
+  const res = await fetch(`https://api.microlink.io/?${params.toString()}`)
+  if (!res.ok) throw new Error('microlink API 오류')
+  const json = await res.json()
+  const imgUrl = json?.data?.screenshot?.url
+  if (!imgUrl) throw new Error('스크린샷 URL을 가져오지 못했습니다')
+
+  const imgRes = await fetch(imgUrl)
+  if (!imgRes.ok) throw new Error('스크린샷 다운로드 실패')
+  const blob = await imgRes.blob()
+  return uploadThumbnail(appId, blob)
+}
+
+// 관리자용 일괄 복구: type이 'link'인 모든 앱의 썸네일을 다시 캡처해 Storage로 재호스팅한다.
+// onProgress(done, total, app, result)로 진행 상황을 알린다.
+export async function repairLinkThumbnails(apps, onProgress) {
+  const targets = apps.filter(a => a.type === 'link' && a.externalUrl)
+  const results = []
+  for (let i = 0; i < targets.length; i++) {
+    const app = targets[i]
+    try {
+      const thumbnail = await captureAndUploadThumbnail(app.id, app.externalUrl)
+      await updateDoc(doc(db, 'apps', app.id), { thumbnail })
+      results.push({ app, ok: true })
+    } catch (err) {
+      results.push({ app, ok: false, error: err.message })
+    }
+    onProgress?.(i + 1, targets.length, app, results[results.length - 1])
+  }
+  return results
 }
 
 // ── Attachments (Firebase Storage) ────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
+import { handleThumbnailError } from '../utils/thumbnail'
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid,
@@ -62,7 +63,7 @@ export default function MyStats() {
               {stats.apps.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).map(app => (
                 <Link key={app.id} to={`/apps/${app.id}`} className="group flex items-center gap-4 p-4 rounded-xl border border-outline-variant hover:border-primary transition-all">
                   <div className="w-14 h-14 rounded-lg overflow-hidden bg-surface-container flex-shrink-0">
-                    <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" />
+                    <img src={app.thumbnail} alt={app.title} className="w-full h-full object-cover" onError={handleThumbnailError} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-headline text-sm font-bold text-deep-navy group-hover:text-primary transition-colors truncate">{app.title}</p>
