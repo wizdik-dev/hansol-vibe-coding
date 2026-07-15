@@ -29,13 +29,11 @@ export default function Register() {
   }, [])
   const [type, setType] = useState('file')
   const [form, setForm] = useState({ title: '', description: '', category: '회계/재무', tags: [], educationBatch: '', externalUrl: '', embedMode: 'newtab' })
-  const [thumbnail, setThumbnail] = useState(null)
   const [thumbnailPreview, setThumbnailPreview] = useState('')
   const [sourceFile, setSourceFile] = useState(null)
   const [errors, setErrors] = useState({})
   const [fileError, setFileError] = useState('')
   const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const [capturingThumb, setCapturingThumb] = useState(false)
   const captureIframeRef = useRef(null)
   const [attachments, setAttachments] = useState([])
   const [uploading, setUploading] = useState(false)
@@ -43,7 +41,6 @@ export default function Register() {
   const [isDraggingAttachment, setIsDraggingAttachment] = useState(false)
 
   async function captureHtmlThumbnail(htmlContent) {
-    setCapturingThumb(true)
     setThumbnailPreview('')
     try {
       // 화면 밖 숨겨진 iframe 생성
@@ -77,8 +74,6 @@ export default function Register() {
     } catch (err) {
       console.warn('썸네일 캡처 실패:', err)
       // 실패 시 기본 이미지 유지 (빈 상태)
-    } finally {
-      setCapturingThumb(false)
     }
   }
 
@@ -108,17 +103,6 @@ export default function Register() {
     }
     setErrors(e)
     return Object.keys(e).length === 0
-  }
-
-  function handleThumbnail(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setFileError('썸네일은 5MB 이하여야 합니다.'); return }
-    setFileError('')
-    setThumbnail(file)
-    const reader = new FileReader()
-    reader.onload = ev => setThumbnailPreview(ev.target.result)
-    reader.readAsDataURL(file)
   }
 
   function handleAttachmentFiles(e) {
@@ -187,9 +171,8 @@ export default function Register() {
         }
         // 외부 링크는 등록 후 자동으로 스크린샷을 캡처해 Storage에 영구 저장한다.
         // 캡처(Lighthouse 분석)는 5~15초 걸릴 수 있어 등록 완료를 막지 않고 백그라운드로
-        // 처리한다 — 완료되면 실시간 구독으로 화면에 자동 반영된다. 사용자가 직접 썸네일을
-        // 업로드한 경우에는 자동 캡처로 덮어쓰지 않는다.
-        if (type === 'link' && newApp.externalUrl && !thumbnail) {
+        // 처리한다 — 완료되면 실시간 구독으로 화면에 자동 반영된다.
+        if (type === 'link' && newApp.externalUrl) {
           captureAndUploadThumbnail(newApp.id, newApp.externalUrl)
             .then(hostedThumbnail => updateApp(newApp.id, { thumbnail: hostedThumbnail }))
             .catch(err => console.warn('썸네일 영구 저장 실패, 임시 URL 유지:', err))
@@ -255,7 +238,6 @@ export default function Register() {
                       <input type="radio" name="type" value={opt.value} checked={type === opt.value} onChange={() => {
                         if (type !== opt.value) {
                           setType(opt.value)
-                          setThumbnail(null)
                           setThumbnailPreview('')
                           setSourceFile(null)
                           setFileError('')
@@ -372,67 +354,12 @@ export default function Register() {
                   </div>
                 )}
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="font-label text-sm text-primary">썸네일 이미지 (16:9 추천, 최대 5MB)</label>
-                    {thumbnailPreview && !capturingThumb && (
-                      <button type="button" onClick={() => setThumbnailPreview('')} className="font-label text-xs text-error hover:underline flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">delete</span>초기화
-                      </button>
-                    )}
-                  </div>
-                  <label className={`w-full border-2 border-dashed bg-surface-container-low p-10 text-center transition-all cursor-pointer group block rounded-xl ${capturingThumb ? 'border-primary/50 pointer-events-none' : 'border-outline-variant hover:border-primary'}`}>
-                    {capturingThumb ? (
-                      <div className="flex flex-col items-center gap-3 py-2">
-                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        <p className="font-label text-sm text-primary font-bold">
-                          {type === 'link' ? '외부 사이트 스크린샷 캡처 중...' : 'HTML 첫 화면 캡처 중...'}
-                        </p>
-                        <p className="font-label text-xs text-text-secondary">
-                          {type === 'link' ? '페이지를 불러오는 중입니다 (수초 소요)' : '차트/스크립트 렌더링을 기다리는 중입니다'}
-                        </p>
-                      </div>
-                    ) : thumbnailPreview ? (
-                      <div className="relative">
-                        <img src={thumbnailPreview} alt="preview" className="max-h-48 mx-auto rounded-lg shadow-md" />
-                        {type === 'file' && sourceFile?.name.endsWith('.html') && (
-                          <div className="mt-3 flex items-center justify-center gap-1.5">
-                            <span className="material-symbols-outlined text-[14px] text-success">auto_awesome</span>
-                            <span className="font-label text-xs text-success">HTML에서 자동 캡처됨</span>
-                          </div>
-                        )}
-                        {type === 'link' && (
-                          <div className="mt-3 flex items-center justify-center gap-1.5">
-                            <span className="material-symbols-outlined text-[14px] text-success">
-                              {thumbnailPreview === '/streamlit-default.svg' ? 'image' : 'screenshot_monitor'}
-                            </span>
-                            <span className="font-label text-xs text-success">
-                              {thumbnailPreview === '/streamlit-default.svg' ? 'Streamlit 기본 이미지 적용 (직접 업로드로 변경 가능)' : '외부 사이트 자동 캡처됨'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-5xl text-outline group-hover:text-primary mb-3 block">image</span>
-                        <p className="font-body text-sm text-text-secondary">이미지를 드래그하거나 클릭하여 업로드하세요</p>
-                        <p className="font-label text-xs text-outline-variant mt-1">JPG, PNG, GIF (최대 5MB)</p>
-                        {type === 'file' && (
-                          <p className="font-label text-xs text-primary/70 mt-2 flex items-center justify-center gap-1">
-                            <span className="material-symbols-outlined text-[13px]">auto_awesome</span>
-                            HTML 파일 업로드 시 자동으로 캡처됩니다
-                          </p>
-                        )}
-                        {type === 'link' && (
-                          <p className="font-label text-xs text-primary/70 mt-2 flex items-center justify-center gap-1">
-                            <span className="material-symbols-outlined text-[13px]">screenshot_monitor</span>
-                            등록 완료 후 자동으로 스크린샷이 생성됩니다 (수초 소요, 직접 업로드로 대체 가능)
-                          </p>
-                        )}
-                      </>
-                    )}
-                    <input type="file" accept="image/*" onChange={handleThumbnail} className="sr-only" />
-                  </label>
+                <div className="bg-surface-container-low border border-outline-variant rounded-lg p-4 flex gap-3">
+                  <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0 mt-0.5">auto_awesome</span>
+                  <p className="font-label text-xs text-text-secondary">
+                    썸네일 이미지는 별도로 업로드할 필요 없이 자동으로 생성됩니다.{' '}
+                    {type === 'file' ? 'HTML 파일 업로드 시 첫 화면을 캡처합니다.' : '등록 완료 후 외부 사이트 스크린샷을 캡처합니다 (수초 소요).'}
+                  </p>
                 </div>
 
                 {type === 'file' && (
@@ -596,11 +523,11 @@ export default function Register() {
                     {type === 'file' ? 'HTML' : 'EXTERNAL'}
                   </span>
                 </div>
-                {/* Thumbnail upload hint overlay when no thumbnail */}
+                {/* Auto-capture hint overlay when no thumbnail yet */}
                 {!thumbnailPreview && (
                   <div className="absolute inset-0 bg-black/20 flex items-end p-3">
                     <span className="font-label text-[10px] text-white/80 bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
-                      썸네일 업로드 시 여기에 표시됩니다
+                      {type === 'file' ? 'HTML 업로드 시 자동 캡처되어 여기에 표시됩니다' : '등록 후 자동 캡처되어 여기에 표시됩니다'}
                     </span>
                   </div>
                 )}
