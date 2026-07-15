@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault, captureAndUploadThumbnail, fetchPageSpeedScreenshot } from '../store'
+import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault, captureAndUploadThumbnail } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -41,26 +41,6 @@ export default function Register() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({})
   const [isDraggingAttachment, setIsDraggingAttachment] = useState(false)
-
-  async function captureUrlThumbnail(url) {
-    if (!url) return
-    setCapturingThumb(true)
-    setThumbnailPreview('')
-    const isStreamlit = /streamlit\.app|streamlit\.io/i.test(url)
-    if (isStreamlit) {
-      setThumbnailPreview('/streamlit-default.svg')
-      setCapturingThumb(false)
-      return
-    }
-    try {
-      const dataUri = await fetchPageSpeedScreenshot(url)
-      setThumbnailPreview(dataUri)
-    } catch (err) {
-      console.warn('URL 썸네일 캡처 실패:', err)
-    } finally {
-      setCapturingThumb(false)
-    }
-  }
 
   async function captureHtmlThumbnail(htmlContent) {
     setCapturingThumb(true)
@@ -205,10 +185,11 @@ export default function Register() {
           const result = await uploadHtmlFile(newApp.id, sourceFile)
           await updateApp(newApp.id, { fileUrl: result.url })
         }
-        // 외부 링크는 미리보기용 스크린샷이 임시 URL일 수 있으므로 우리 Storage에 영구 저장한
-        // 썸네일로 교체한다. 캡처(Lighthouse 분석)는 5~15초 걸릴 수 있어 등록 완료를 막지 않고
-        // 백그라운드로 처리한다 — 완료되면 실시간 구독으로 화면에 자동 반영된다.
-        if (type === 'link' && newApp.externalUrl) {
+        // 외부 링크는 등록 후 자동으로 스크린샷을 캡처해 Storage에 영구 저장한다.
+        // 캡처(Lighthouse 분석)는 5~15초 걸릴 수 있어 등록 완료를 막지 않고 백그라운드로
+        // 처리한다 — 완료되면 실시간 구독으로 화면에 자동 반영된다. 사용자가 직접 썸네일을
+        // 업로드한 경우에는 자동 캡처로 덮어쓰지 않는다.
+        if (type === 'link' && newApp.externalUrl && !thumbnail) {
           captureAndUploadThumbnail(newApp.id, newApp.externalUrl)
             .then(hostedThumbnail => updateApp(newApp.id, { thumbnail: hostedThumbnail }))
             .catch(err => console.warn('썸네일 영구 저장 실패, 임시 URL 유지:', err))
@@ -366,14 +347,7 @@ export default function Register() {
                 )}
                 <div className="flex justify-between pt-4">
                   <button onClick={() => setStep(1)} className="px-8 py-3 border border-primary text-primary font-label text-sm font-bold rounded-lg hover:bg-surface-container-low transition-all">이전</button>
-                  <button onClick={() => {
-                    if (validateStep2()) {
-                      setStep(3)
-                      if (type === 'link' && form.externalUrl.trim() && !thumbnailPreview) {
-                        captureUrlThumbnail(normalizeUrl(form.externalUrl.trim()))
-                      }
-                    }
-                  }} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all">다음 단계</button>
+                  <button onClick={() => { if (validateStep2()) setStep(3) }} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all">다음 단계</button>
                 </div>
               </div>
             )}
@@ -452,7 +426,7 @@ export default function Register() {
                         {type === 'link' && (
                           <p className="font-label text-xs text-primary/70 mt-2 flex items-center justify-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">screenshot_monitor</span>
-                            URL 입력 후 다음 단계로 이동하면 자동 캡처됩니다
+                            등록 완료 후 자동으로 스크린샷이 생성됩니다 (수초 소요, 직접 업로드로 대체 가능)
                           </p>
                         )}
                       </>
