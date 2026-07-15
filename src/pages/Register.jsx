@@ -180,7 +180,6 @@ export default function Register() {
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (capturingThumb) return
 
     async function doSubmit() {
       setUploading(true)
@@ -581,9 +580,9 @@ export default function Register() {
 
                 <div className="flex justify-between pt-4">
                   <button type="button" onClick={() => setStep(2)} disabled={uploading} className="px-8 py-3 border border-primary text-primary font-label text-sm font-bold rounded-lg hover:bg-surface-container-low transition-all disabled:opacity-50">이전</button>
-                  <button type="submit" disabled={uploading || capturingThumb} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all shadow-lg hover:scale-105 disabled:opacity-60 flex items-center gap-2">
-                    {(uploading || capturingThumb) && <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />}
-                    {capturingThumb ? '썸네일 캡처 중...' : uploading ? '업로드 중...' : '최종 등록하기'}
+                  <button type="submit" disabled={uploading} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all shadow-lg hover:scale-105 disabled:opacity-60 flex items-center gap-2">
+                    {uploading && <span className="w-4 h-4 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />}
+                    {uploading ? '업로드 중...' : '최종 등록하기'}
                   </button>
                 </div>
               </form>
