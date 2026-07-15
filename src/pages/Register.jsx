@@ -206,15 +206,13 @@ export default function Register() {
           const result = await uploadHtmlFile(newApp.id, sourceFile)
           await updateApp(newApp.id, { fileUrl: result.url })
         }
-        // 외부 링크는 미리보기용 microlink URL이 시간이 지나면 만료되므로,
-        // 우리 Storage에 영구 저장한 썸네일로 교체한다 (실패해도 등록 자체는 유지)
-        if (type === 'link' && form.externalUrl.trim()) {
-          try {
-            const hostedThumbnail = await captureAndUploadThumbnail(newApp.id, form.externalUrl.trim())
-            await updateApp(newApp.id, { thumbnail: hostedThumbnail })
-          } catch (err) {
-            console.warn('썸네일 영구 저장 실패, 임시 URL 유지:', err)
-          }
+        // 외부 링크는 미리보기용 스크린샷이 임시 URL일 수 있으므로 우리 Storage에 영구 저장한
+        // 썸네일로 교체한다. 캡처(Lighthouse 분석)는 5~15초 걸릴 수 있어 등록 완료를 막지 않고
+        // 백그라운드로 처리한다 — 완료되면 실시간 구독으로 화면에 자동 반영된다.
+        if (type === 'link' && newApp.externalUrl) {
+          captureAndUploadThumbnail(newApp.id, newApp.externalUrl)
+            .then(hostedThumbnail => updateApp(newApp.id, { thumbnail: hostedThumbnail }))
+            .catch(err => console.warn('썸네일 영구 저장 실패, 임시 URL 유지:', err))
         }
         const validFiles = attachments.filter(a => !a.error)
         if (validFiles.length > 0) {
@@ -373,7 +371,7 @@ export default function Register() {
                     if (validateStep2()) {
                       setStep(3)
                       if (type === 'link' && form.externalUrl.trim() && !thumbnailPreview) {
-                        captureUrlThumbnail(form.externalUrl.trim())
+                        captureUrlThumbnail(normalizeUrl(form.externalUrl.trim()))
                       }
                     }
                   }} className="px-8 py-3 bg-primary text-on-primary font-label text-sm font-bold rounded-lg hover:bg-deep-navy transition-all">다음 단계</button>
