@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useData } from '../DataContext'
-import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault, captureAndUploadThumbnail } from '../store'
+import { isDomainBlocked, getBlockedDomains, getEducationBatchesWithDefault, captureAndUploadThumbnail, fetchPageSpeedScreenshot } from '../store'
 import html2canvas from 'html2canvas'
 
 const CATEGORIES = ['회계/재무', '영업/마케팅', '구매/조달', '생산/제조', '물류/유통', '인사/총무', '기획/전략', 'IT/시스템', '품질/안전', '고객서비스', '기타']
@@ -53,12 +53,8 @@ export default function Register() {
       return
     }
     try {
-      const params = new URLSearchParams({ url, screenshot: 'true', meta: 'false' })
-      const res = await fetch(`https://api.microlink.io/?${params.toString()}`)
-      if (!res.ok) throw new Error('API 오류')
-      const json = await res.json()
-      const imgUrl = json?.data?.screenshot?.url
-      if (imgUrl) setThumbnailPreview(imgUrl)
+      const dataUri = await fetchPageSpeedScreenshot(url)
+      setThumbnailPreview(dataUri)
     } catch (err) {
       console.warn('URL 썸네일 캡처 실패:', err)
     } finally {

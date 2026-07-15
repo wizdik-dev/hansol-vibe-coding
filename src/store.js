@@ -466,18 +466,22 @@ export function validateFile(file) {
 }
 
 // ── Thumbnails (Firebase Storage) ─────────────────────────────────────────────
-// 외부 링크(EXTERNAL) 앱의 썸네일은 microlink.io 스크린샷 API가 반환한 URL을 그대로 쓰면 안 됨.
-// microlink 쪽 CDN이 약 한 달 뒤 이미지를 자동 삭제(flush)해서 403이 나기 때문에,
-// 캡처한 이미지를 반드시 우리 Firebase Storage로 재호스팅해서 영구 URL을 사용한다.
+// 외부 링크(EXTERNAL) 앱의 썸네일은 스크린샷 API가 돌려준 URL을 그대로 쓰면 안 됨
+// (예: microlink는 캐시 이미지를 약 한 달 뒤 자동 삭제해서 403이 남). 캡처한 이미지를
+// 반드시 우리 Firebase Storage로 재호스팅해서 영구 URL을 사용한다.
+// 스크린샷 자체는 Google PageSpeed Insights(Lighthouse) API의 부산물을 재활용한다 —
+// 무료이며 별도 결제 없이 API 키만으로 microlink 무인증 요청보다 훨씬 넉넉한 할당량을 쓸 수 있다.
 const STREAMLIT_DEFAULT_THUMBNAIL = '/streamlit-default.svg'
+const GOOGLE_PAGESPEED_API_KEY = import.meta.env.VITE_GOOGLE_PAGESPEED_API_KEY
 
 function isStreamlitUrl(url) {
   return /streamlit\.app|streamlit\.io/i.test(url || '')
 }
 
-export function uploadThumbnail(appId, blob, contentType = 'image/png') {
+export function uploadThumbnail(appId, blob, contentType = 'image/jpeg') {
   return new Promise((resolve, reject) => {
-    const storageRef = ref(storage, `thumbnails/${appId}/thumbnail_${Date.now()}.png`)
+    const ext = contentType.includes('png') ? 'png' : 'jpg'
+    const storageRef = ref(storage, `thumbnails/${appId}/thumbnail_${Date.now()}.${ext}`)
     const task = uploadBytesResumable(storageRef, blob, { contentType })
     task.on('state_changed', null, reject, async () => {
       const url = await getDownloadURL(task.snapshot.ref)
@@ -486,22 +490,35 @@ export function uploadThumbnail(appId, blob, contentType = 'image/png') {
   })
 }
 
-// 외부 URL을 microlink로 캡처한 뒤 Firebase Storage에 업로드해 영구 썸네일 URL을 반환한다.
+// Google PageSpeed Insights(Lighthouse) API로 페이지 스크린샷을 가져온다.
+// 응답에 이미 data URI(base64)로 들어있어 별도 CDN 의존 없이 바로 쓸 수 있다.
+export async function fetchPageSpeedScreenshot(externalUrl) {
+  if (!GOOGLE_PAGESPEED_API_KEY) throw new Error('Google PageSpeed API 키가 설정되지 않았습니다 (VITE_GOOGLE_PAGESPEED_API_KEY)')
+  const params = new URLSearchParams({
+    url: externalUrl,
+    key: GOOGLE_PAGESPEED_API_KEY,
+    category: 'performance',
+    strategy: 'desktop',
+  })
+  const res = await fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params.toString()}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error?.message || `PageSpeed API 오류 (${res.status})`)
+  }
+  const json = await res.json()
+  const dataUri = json?.lighthouseResult?.audits?.['final-screenshot']?.details?.data
+  if (!dataUri) throw new Error('스크린샷 데이터를 가져오지 못했습니다 (해당 URL을 렌더링하지 못했을 수 있음)')
+  return dataUri
+}
+
+// 외부 URL을 캡처한 뒤 Firebase Storage에 업로드해 영구 썸네일 URL을 반환한다.
 // Streamlit 링크는 캡처 시도 없이 기본 썸네일을 바로 반환한다.
 export async function captureAndUploadThumbnail(appId, externalUrl) {
   if (isStreamlitUrl(externalUrl)) return STREAMLIT_DEFAULT_THUMBNAIL
 
-  const params = new URLSearchParams({ url: externalUrl, screenshot: 'true', meta: 'false' })
-  const res = await fetch(`https://api.microlink.io/?${params.toString()}`)
-  if (!res.ok) throw new Error('microlink API 오류')
-  const json = await res.json()
-  const imgUrl = json?.data?.screenshot?.url
-  if (!imgUrl) throw new Error('스크린샷 URL을 가져오지 못했습니다')
-
-  const imgRes = await fetch(imgUrl)
-  if (!imgRes.ok) throw new Error('스크린샷 다운로드 실패')
-  const blob = await imgRes.blob()
-  return uploadThumbnail(appId, blob)
+  const dataUri = await fetchPageSpeedScreenshot(externalUrl)
+  const blob = await (await fetch(dataUri)).blob()
+  return uploadThumbnail(appId, blob, blob.type || 'image/jpeg')
 }
 
 // ── Attachments (Firebase Storage) ────────────────────────────────────────────
