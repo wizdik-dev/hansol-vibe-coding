@@ -63,7 +63,6 @@ export default function Register() {
         height: 720,
         scale: 0.5,
         useCORS: true,
-        allowTaint: true,
         logging: false,
         backgroundColor: '#ffffff',
         foreignObjectRendering: false,
