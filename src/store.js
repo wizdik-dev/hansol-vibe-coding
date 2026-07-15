@@ -504,25 +504,6 @@ export async function captureAndUploadThumbnail(appId, externalUrl) {
   return uploadThumbnail(appId, blob)
 }
 
-// 관리자용 일괄 복구: type이 'link'인 모든 앱의 썸네일을 다시 캡처해 Storage로 재호스팅한다.
-// onProgress(done, total, app, result)로 진행 상황을 알린다.
-export async function repairLinkThumbnails(apps, onProgress) {
-  const targets = apps.filter(a => a.type === 'link' && a.externalUrl)
-  const results = []
-  for (let i = 0; i < targets.length; i++) {
-    const app = targets[i]
-    try {
-      const thumbnail = await captureAndUploadThumbnail(app.id, app.externalUrl)
-      await updateDoc(doc(db, 'apps', app.id), { thumbnail })
-      results.push({ app, ok: true })
-    } catch (err) {
-      results.push({ app, ok: false, error: err.message })
-    }
-    onProgress?.(i + 1, targets.length, app, results[results.length - 1])
-  }
-  return results
-}
-
 // ── Attachments (Firebase Storage) ────────────────────────────────────────────
 const ATTACHMENT_ALLOWED = ['.xlsx', '.xls', '.csv', '.pdf', '.pptx', '.ppt', '.docx', '.doc', '.txt', '.md', '.zip', '.png', '.jpg', '.jpeg']
 const ATTACHMENT_MAX_MB = 60
