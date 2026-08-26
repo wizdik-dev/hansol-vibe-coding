@@ -36,7 +36,8 @@ export default function Navbar() {
 
   function handleSearch(e) {
     e.preventDefault()
-    if (searchVal.trim()) navigate(`/?q=${encodeURIComponent(searchVal.trim())}`)
+    const trimmed = searchVal.trim()
+    navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/')
   }
 
   async function handleNotifClick(notif) {
