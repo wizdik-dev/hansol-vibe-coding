@@ -35,6 +35,14 @@ export default function Gallery() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const loaderRef = useRef(null)
   const navigate = useNavigate()
+  const [batchMenuOpen, setBatchMenuOpen] = useState(false)
+  const batchMenuRef = useRef(null)
+
+  useEffect(() => {
+    const handler = e => { if (batchMenuRef.current && !batchMenuRef.current.contains(e.target)) setBatchMenuOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const q = searchParams.get('q') || ''
 
@@ -124,18 +132,40 @@ export default function Gallery() {
               ))}
               {batchList.length > 0 && <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />}
               {batchList.length > 0 && (
-                <>
-                  <span className="material-symbols-outlined text-[15px] text-outline flex-shrink-0">school</span>
-                  <select
-                    value={batch}
-                    onChange={e => setBatch(e.target.value)}
-                    className="bg-transparent border-none focus:ring-0 font-label text-xs text-text-secondary font-bold cursor-pointer outline-none whitespace-nowrap"
-                    style={{ color: batch !== '전체' ? batchColorMap[batch] : undefined }}
+                <div className="relative flex-shrink-0" ref={batchMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setBatchMenuOpen(v => !v)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-colors ${batch === '전체' ? 'bg-surface-container text-text-secondary hover:bg-surface-container-high' : ''}`}
+                    style={batch !== '전체' ? { backgroundColor: batchColorMap[batch], color: '#fff' } : undefined}
                   >
-                    <option value="전체">교육차수</option>
-                    {batchList.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
-                  </select>
-                </>
+                    <span className="material-symbols-outlined text-[15px]">school</span>
+                    {batch === '전체' ? '교육차수' : batch}
+                    <span className="material-symbols-outlined text-[15px]">{batchMenuOpen ? 'expand_less' : 'expand_more'}</span>
+                  </button>
+                  {batchMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 min-w-[190px] bg-surface-white border border-outline-variant rounded-xl shadow-xl p-1.5 flex flex-col gap-1 z-50">
+                      <button
+                        onClick={() => { setBatch('전체'); setBatchMenuOpen(false) }}
+                        className={`px-3 py-1.5 rounded-lg font-label text-xs font-bold text-left transition-colors ${batch === '전체' ? 'bg-primary text-on-primary' : 'text-text-secondary hover:bg-surface-container-low'}`}
+                      >
+                        전체
+                      </button>
+                      {batchList.map(b => (
+                        <button
+                          key={b.name}
+                          onClick={() => { setBatch(b.name); setBatchMenuOpen(false) }}
+                          className="px-3 py-1.5 rounded-lg font-label text-xs font-bold text-left transition-colors"
+                          style={batch === b.name
+                            ? { backgroundColor: b.color, color: '#fff' }
+                            : { backgroundColor: b.color + '18', color: b.color }}
+                        >
+                          {b.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />
               <span className="material-symbols-outlined text-[15px] text-outline flex-shrink-0">category</span>
