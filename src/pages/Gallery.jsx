@@ -120,7 +120,7 @@ export default function Gallery() {
       <section className="bg-surface-white border-y border-outline-variant sticky top-16 z-40">
         <div className="max-w-[1280px] mx-auto px-4 md:px-12 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center flex-wrap gap-2">
               {['전체', 'HTML', '외부링크'].map(t => (
                 <button
                   key={t}
