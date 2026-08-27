@@ -124,25 +124,19 @@ export default function Gallery() {
               ))}
               {batchList.length > 0 && <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />}
               {batchList.length > 0 && (
-                <button
-                  onClick={() => setBatch('전체')}
-                  className={`px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-colors ${batch === '전체' ? 'bg-primary text-on-primary' : 'bg-surface-container text-text-secondary hover:bg-surface-container-high'}`}
-                >
-                  전체
-                </button>
+                <>
+                  <span className="material-symbols-outlined text-[15px] text-outline flex-shrink-0">school</span>
+                  <select
+                    value={batch}
+                    onChange={e => setBatch(e.target.value)}
+                    className="bg-transparent border-none focus:ring-0 font-label text-xs text-text-secondary font-bold cursor-pointer outline-none whitespace-nowrap"
+                    style={{ color: batch !== '전체' ? batchColorMap[batch] : undefined }}
+                  >
+                    <option value="전체">교육차수</option>
+                    {batchList.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                  </select>
+                </>
               )}
-              {batchList.map(b => (
-                <button
-                  key={b.name}
-                  onClick={() => setBatch(batch === b.name ? '전체' : b.name)}
-                  className="px-4 py-1.5 rounded-full font-label text-xs font-bold whitespace-nowrap transition-all"
-                  style={batch === b.name
-                    ? { backgroundColor: b.color, color: '#fff' }
-                    : { backgroundColor: b.color + '18', color: b.color }}
-                >
-                  {b.name}
-                </button>
-              ))}
               <div className="w-px h-4 bg-outline-variant mx-0.5 flex-shrink-0" />
               <span className="material-symbols-outlined text-[15px] text-outline flex-shrink-0">category</span>
               <select
